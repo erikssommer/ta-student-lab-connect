@@ -1,18 +1,56 @@
 # Group client component
-import appJar as app
+import paho.mqtt.client as mqtt
+from appJar import gui
 from datetime import datetime
+import logging
+
+# MQTT broker address
+MQTT_BROKER = 'mqtt20.iik.ntnu.no'
+MQTT_PORT = 1883
+
+# MQTT topics
+MQTT_TOPIC_INPUT = 'ttm4115/team10/command'
+MQTT_TOPIC_OUTPUT = 'ttm4115/team10/answer'
 
 
 class GroupClientComponent:
+
+    def on_connect(self, client, userdata, flags, rc):
+        # Only log that we are connected if the connection was successful
+        self._logger.debug('MQTT connected to {}'.format(client))
+
+    def on_message(self, client, userdata, msg):
+        pass
+
     def __init__(self):
-        self.app = app.gui()
+        # get the logger object for the component
+        self._logger = logging.getLogger(__name__)
+        print('logging under name {}.'.format(__name__))
+        self._logger.info('Starting Component')
+
+        # create a new MQTT client
+        self._logger.debug(
+            'Connecting to MQTT broker {} at port {}'.format(MQTT_BROKER, MQTT_PORT))
+        self.mqtt_client = mqtt.Client()
+        # callback methods
+        self.mqtt_client.on_connect = self.on_connect
+        self.mqtt_client.on_message = self.on_message
+        # Connect to the broker
+        self.mqtt_client.connect(MQTT_BROKER, MQTT_PORT)
+        # start the internal loop to process MQTT messages
+        self.mqtt_client.loop_start()
+
         self.tasks = ["Task 1: Implement a linked list. Duration: 30min", "Task 2: Implement a stack. Duration: 30min",
                       "Task 3: Implement a queue. Duration: 30min", "Task 4: Implement a binary search tree. Duration: 30min", "Task 5: Implement a hash table. Duration: 30min"]
         self.teams = ['Select a team'] + [team for team in range(1, 21)]
         self.image_path = '../../assets/green_light.png'
+
+        # Settup the GUI
         self.setup_gui()
 
     def setup_gui(self):
+        self.app = gui()
+
         self.app.setSize(800, 400)  # Set the size of the GUI window
         self.app.setTitle("Group Client")  # Set the title of the GUI window
         self.app.addLabel("upper_right_label_date",
@@ -42,10 +80,12 @@ class GroupClientComponent:
         self.app.addLabel("light_label", "Light status:")
         self.app.addImage("light", self.image_path)
         self.init_popup()
+
+        # Start the GUI
         self.app.go()
 
     def show_message(self):
-        self.app.infoBox(title="Instructions", 
+        self.app.infoBox(title="Instructions",
                          message="Use the checkboxes to mark the tasks you have completed. \
                          When you are ready to request help, enter a description of the help you need in the text \
                           field below and click the 'Request Help' button. The TAs will then come to your group and \
@@ -104,6 +144,28 @@ class GroupClientComponent:
             "Success", "Help request sent successfully", kind="info")
         print(help_request)
 
+    def stop(self):
+        """
+        Stop the component.
+        """
+        # stop the MQTT client
+        self.mqtt_client.loop_stop()
+
 
 if __name__ == '__main__':
+    # logging.DEBUG: Most fine-grained logging, printing everything
+    # logging.INFO:  Only the most important informational log items
+    # logging.WARN:  Show only warnings and errors.
+    # logging.ERROR: Show only error messages.
+    debug_level = logging.DEBUG
+    logger = logging.getLogger(__name__)
+    logger.setLevel(debug_level)
+    ch = logging.StreamHandler()
+    ch.setLevel(debug_level)
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)-12s - %(levelname)-8s - %(message)s')
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+
+    # Create a new instance of the GroupClientComponent
     client = GroupClientComponent()
