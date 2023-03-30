@@ -6,6 +6,7 @@ class GroupClientComponent:
     def __init__(self):
         self.app = app.gui()
         self.tasks = ["Task 1", "Task 2", "Task 3"]
+        self.teams = ['Select a team'] + [team for team in range(1, 21)]
         self.image_path = '../../assets/green_light.png'
         self.setup_gui()
 
@@ -17,7 +18,12 @@ class GroupClientComponent:
         self.app.setStretch("both")
         self.app.addLabel("title", "Group Client Component")
         self.app.addLabel("tasks_label", "Current Tasks:")
-        self.app.addListBox("tasks_list", self.tasks)
+        self.app.addListBox("tasks_list")
+        # Add all tasks to the listbox
+        for task in self.tasks:
+            self.app.addListItem("tasks_list", task)
+            self.app.addCheckBox(task)
+
         self.app.addLabelEntry("Description")
         self.app.addButton("Request Help", self.on_request_help)
         self.app.addImage("light", self.image_path)
@@ -28,8 +34,7 @@ class GroupClientComponent:
         # Define the popup window
         self.app.startSubWindow("Enter Group Number", modal=True)
         self.app.setSize(300, 200)
-        self.app.addLabel("message_label", "Enter your message:")
-        self.app.addEntry("message_entry")
+        self.app.addOptionBox("team_dropdown", self.teams, height=3)
         self.app.addButton("Submit", self.submit_message)
         self.app.setStopFunction(self.sub_window_closed)
         self.app.stopSubWindow()
@@ -39,11 +44,11 @@ class GroupClientComponent:
 
     def submit_message(self):
         # Retrieve the message from the input field
-        message = self.app.getEntry("message_entry")
+        message = self.app.getOptionBox("team_dropdown")
 
         # Test if the message is empty
-        if message == "":
-            self.app.popUp("Error", "Please enter a message", kind="error")
+        if message == "Select a team":
+            self.app.popUp("Error", "Please choose a team", kind="error")
             return
         
         # Test if message is a number
