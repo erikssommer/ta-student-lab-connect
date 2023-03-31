@@ -5,6 +5,7 @@ from datetime import datetime
 import logging
 import json
 import stmpy
+from threading import Thread
 
 NR_OF_TEAMS = 20
 
@@ -83,8 +84,14 @@ class GroupClientComponent:
         # Subscribe to the input topic
         self.mqtt_client.subscribe(MQTT_TOPIC_INPUT)
         self.mqtt_client.subscribe(MQTT_TOPIC_TASKS)
-        # Start the internal loop to process MQTT messages
-        self.mqtt_client.loop_start()
+
+        # Start the MQTT client in a separate thread to avoid blocking
+        try:
+            thread = Thread(target=self.mqtt_client.loop_start())
+            thread.start()
+        except KeyboardInterrupt:
+            print("Interrupted")
+            self.client.disconnect()
 
         # Setting up the drivers for the state machines
         # Start the stmpy driver for the group component, without any state machines for now
