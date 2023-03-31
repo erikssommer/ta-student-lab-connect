@@ -123,6 +123,14 @@ class GroupClientComponent:
         # Add a listbox to host the tasks
         self.app.addListBox("listbox_tasks")
 
+        # Button for marking a task as done
+        self.app.addButton("Mark task as done", self.on_mark_task_as_done)
+        self.app.setButtonSticky("Mark task as done", "w")
+
+        # Add lable for tasks done
+        self.app.addLabel("all_tasks_done_label", "").config(font="Helvetica 15")
+        self.app.setLabelSticky("all_tasks_done_label", "w")
+
         # Request help elements
         self.app.addLabel("description_label",
                           "Need help? - Ask TAs for help!")
@@ -237,6 +245,23 @@ class GroupClientComponent:
     def update_queue_number(self):
         """ Update the queue number """
         self.app.setLabel("Help Queue", f"Queue Number: {self.queue_number}")
+
+    def on_mark_task_as_done(self):
+        """ Mark a task as done """
+        # Get the selected task
+        selected_task = self.app.getListBox("listbox_tasks")
+
+        # Test if the task is selected
+        if selected_task == []:
+            self.app.popUp("Error", "Please select a task", kind="error")
+            return
+
+        # Remove the task from the listbox
+        self.app.removeListItem("listbox_tasks", selected_task)
+
+        # Add lable that all tasks are done
+        if self.app.getListBox("listbox_tasks") == []:
+            self.app.setLabel("all_tasks_done_label", "All tasks are done! Good job!")
 
 
 if __name__ == '__main__':
