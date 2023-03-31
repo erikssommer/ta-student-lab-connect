@@ -21,12 +21,25 @@ class GroupClientComponent:
         self._logger.debug('MQTT connected to {}'.format(client))
 
     def on_message(self, client, userdata, msg):
-        pass
+        self._logger.debug('Received message: {}'.format(msg.payload))
+
+        # TODO unwrap JSON-encoded payload
+        try:
+            payload = json.loads(msg.payload.decode('utf-8'))
+        except json.JSONDecodeError:
+            self._logger.error(
+                'Could not decode JSON from message {}'.format(msg.payload))
+            return
+        
 
     def publish_message(self, message):
         payload = json.dumps(message)
         self._logger.info('Publishing message: {}'.format(payload))
         self.mqtt_client.publish(MQTT_TOPIC_INPUT, payload=payload, qos=2)
+
+    def retrieve_message(self):
+        self.mqtt_client.subscribe(MQTT_TOPIC_OUTPUT)
+        self.mqtt_client.on_message = self.on_message
 
     def __init__(self):
         self.queue_number = 0
@@ -45,6 +58,8 @@ class GroupClientComponent:
         self.mqtt_client.on_message = self.on_message
         # Connect to the broker
         self.mqtt_client.connect(MQTT_BROKER, MQTT_PORT)
+        # Subscribe to the input topic
+        self.mqtt_client.subscribe(MQTT_TOPIC_INPUT)
         # start the internal loop to process MQTT messages
         self.mqtt_client.loop_start()
 
