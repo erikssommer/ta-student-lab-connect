@@ -98,7 +98,7 @@ class GroupClientComponent:
             thread.start()
         except KeyboardInterrupt:
             print("Interrupted")
-            self.client.disconnect()
+            self.mqtt_client.disconnect()
 
         # Setting up the drivers for the state machines
         # Start the stmpy driver for the group component, without any state machines for now
@@ -292,3 +292,8 @@ class GroupClientComponent:
         if self.app.getTableRow("table_tasks", self.app.getTableRowCount("table_tasks") - 1)[3] == "Done":
             self.app.popUp("Info", "All tasks are done", kind="info")
             self.app.setLabel("all_tasks_done_label", "All tasks are done! Good job!")
+
+    
+    def set_status_light(self, light):
+        """ Set the status light """
+        self.app.setImage("light", light)
