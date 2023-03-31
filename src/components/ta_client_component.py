@@ -69,8 +69,6 @@ class TaClientComponent:
     def setup_gui(self):
         self.app = gui()
 
-        # set the background color of the window to light blue
-        self.app.setBg("light blue")
         # Set the size of the GUI window and primary elements
         self.app.setSize(800, 600)  # Set the size of the GUI window
         self.app.setTitle("TA client")  # Set the title of the GUI window
