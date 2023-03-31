@@ -29,6 +29,8 @@ class GroupClientComponent:
         self.mqtt_client.publish(MQTT_TOPIC_INPUT, payload=payload, qos=2)
 
     def __init__(self):
+        self.queue_number = 0
+
         # get the logger object for the component
         self._logger = logging.getLogger(__name__)
         print('logging under name {}.'.format(__name__))
@@ -57,6 +59,7 @@ class GroupClientComponent:
     def setup_gui(self):
         self.app = gui()
 
+        # Set the size of the GUI window and primary elements
         self.app.setSize(800, 600)  # Set the size of the GUI window
         self.app.setTitle("Group Client")  # Set the title of the GUI window
         self.app.addLabel("upper_right_label_date",
@@ -72,19 +75,23 @@ class GroupClientComponent:
         self.app.addButton("Show Instructions", self.show_message)
         self.app.setButtonSticky("Show Instructions", "w")
 
+        # Task elements
         # Add all tasks to the listbox
         for task in self.tasks:
             self.app.addCheckBox(task)
 
+        # Request help elements
         self.app.addLabel("description_label",
                           "Need help? - Ask TAs for help!")
         self.app.addLabelEntry("Description:")
         self.app.addButton("Request Help", self.on_request_help)
         self.app.addLabel("Request feedback", "")
-        self.app.setLabel("Help Queue", "")
+        self.app.addLabel("Help Queue", "")
 
+        # Add a horizontal separator
         self.app.addHorizontalSeparator(colour="black")
 
+        # Light status elements
         self.app.addLabel("light_label", "Light status:")
         self.app.addImage("light", self.image_path)
         self.init_popup()
@@ -93,6 +100,7 @@ class GroupClientComponent:
         self.app.go()
 
     def show_message(self):
+        """ Show the instructions for the lab session """
         self.app.infoBox(title="Instructions",
                          message="Use the checkboxes to mark the tasks you have completed. \
                          When you are ready to request help, enter a description of the help you need in the text \
@@ -100,6 +108,7 @@ class GroupClientComponent:
                           help you with your tasks. Good luck!")
 
     def init_popup(self):
+        """ Initialize the popup window """
         # Define the popup window
         self.app.startSubWindow("Enter Group Number", modal=True)
         self.app.setSize(300, 200)
@@ -112,6 +121,7 @@ class GroupClientComponent:
         self.app.showSubWindow("Enter Group Number")
 
     def submit_message(self):
+        """ Submit the message from the input field """
         # Retrieve the message from the input field
         message = self.app.getOptionBox("team_dropdown")
 
@@ -136,6 +146,7 @@ class GroupClientComponent:
         self.app.setLabel("upper_right_label", self.team_text)
 
     def sub_window_closed(self):
+        """ Close the application if the popup window is closed """
         # Close the application if the popup window is closed
         self.app.popUp("Info", "Application will stop", kind="info")
         self.app.stop()
@@ -153,6 +164,9 @@ class GroupClientComponent:
             self.app.setLabel("Request feedback", "Request successfully sent!")
             self.app.setLabelFg("Request feedback", "green")
             print(help_request)
+
+            self.app.setPollTime(1000)
+            self.app.registerEvent(self.update_queue_number)
         except Exception as e:
             self.app.popUp("Error", e, kind="error")
             self.app.setLabel("Request feedback", "Request failed!")
@@ -165,6 +179,10 @@ class GroupClientComponent:
         """
         # stop the MQTT client
         self.mqtt_client.loop_stop()
+
+    def update_queue_number(self):
+        """ Update the queue number """
+        self.app.setLabel("Help Queue", f"Queue Number: {self.queue_number}")
 
 
 if __name__ == '__main__':
