@@ -3,14 +3,15 @@ import paho.mqtt.client as mqtt
 from appJar import gui
 from datetime import datetime
 import logging
+import json
 
 # MQTT broker address
 MQTT_BROKER = 'mqtt20.iik.ntnu.no'
 MQTT_PORT = 1883
 
 # MQTT topics
-MQTT_TOPIC_INPUT = 'ttm4115/team10/command'
-MQTT_TOPIC_OUTPUT = 'ttm4115/team10/answer'
+MQTT_TOPIC_INPUT = 'ttm4115/project/team10/request'
+MQTT_TOPIC_OUTPUT = 'ttm4115/project/team10/response'
 
 
 class GroupClientComponent:
@@ -21,6 +22,11 @@ class GroupClientComponent:
 
     def on_message(self, client, userdata, msg):
         pass
+
+    def publish_message(self, message):
+        payload = json.dumps(message)
+        self._logger.info('Publishing message: {}'.format(payload))
+        self.mqtt_client.publish(MQTT_TOPIC_INPUT, payload=payload, qos=2)
 
     def __init__(self):
         # get the logger object for the component
@@ -51,7 +57,7 @@ class GroupClientComponent:
     def setup_gui(self):
         self.app = gui()
 
-        self.app.setSize(800, 400)  # Set the size of the GUI window
+        self.app.setSize(800, 600)  # Set the size of the GUI window
         self.app.setTitle("Group Client")  # Set the title of the GUI window
         self.app.addLabel("upper_right_label_date",
                           f"Date: {datetime.now().strftime('%d/%m/%Y')}")
@@ -74,6 +80,8 @@ class GroupClientComponent:
                           "Need help? - Ask TAs for help!")
         self.app.addLabelEntry("Description:")
         self.app.addButton("Request Help", self.on_request_help)
+        self.app.addLabel("Request feedback", "")
+        self.app.setLabel("Help Queue", "")
 
         self.app.addHorizontalSeparator(colour="black")
 
@@ -140,9 +148,16 @@ class GroupClientComponent:
                 "Error", "Please enter a description of the help you need", kind="error")
             return
         self.app.clearEntry("Description:")
-        self.app.popUp(
-            "Success", "Help request sent successfully", kind="info")
-        print(help_request)
+        try:
+            self.publish_message(help_request)
+            self.app.setLabel("Request feedback", "Request successfully sent!")
+            self.app.setLabelFg("Request feedback", "green")
+            print(help_request)
+        except Exception as e:
+            self.app.popUp("Error", e, kind="error")
+            self.app.setLabel("Request feedback", "Request failed!")
+            self.app.setLabelFg("Request feedback", "red")
+            return
 
     def stop(self):
         """
@@ -169,3 +184,4 @@ if __name__ == '__main__':
 
     # Create a new instance of the GroupClientComponent
     client = GroupClientComponent()
+ 
