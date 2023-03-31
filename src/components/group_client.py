@@ -16,6 +16,7 @@ MQTT_TOPIC_TASKS = 'ttm4115/project/team10/tasks'
 MQTT_TOPIC_INPUT = 'ttm4115/project/team10/request'
 MQTT_TOPIC_OUTPUT = 'ttm4115/project/team10/response'
 
+
 class GroupClientComponent:
 
     def on_connect(self, client, userdata, flags, rc):
@@ -40,12 +41,16 @@ class GroupClientComponent:
         # Handle the different commands
         if topic == MQTT_TOPIC_TASKS:
             self.app.setLabel("listbox_tasks_label", "")
-            
+
             # Populate the listbox with tasks
-            for task in payload:
-                name = f"{task['task']} {task['duration']} minutes"
-                self.app.addListItem("listbox_tasks", name)
-        
+            for i, task in enumerate(payload):
+                # set the status for the first row to "in progress"
+                if i == 0:
+                    status = "In progress"
+                else:
+                    status = "Not done"
+                self.app.addTableRow(
+                    "table_tasks", [task['task'], task['description'], task['duration'], status])
 
     def publish_message(self, message):
         payload = json.dumps(message)
@@ -89,7 +94,7 @@ class GroupClientComponent:
         self.light_stm_driver.start(keep_active=True)
 
         self._logger.debug('Component initialization finished')
-        
+
         # TODO removed later
         self.nr_of_tasks = 5
         self.teams = ['Select a team'] + [team for team in range(1, 21)]
@@ -100,7 +105,8 @@ class GroupClientComponent:
 
     def setup_gui(self):
         self.app = gui()
-
+        # set the background color of the window to light blue
+        self.app.setBg("light blue")
         # Set the size of the GUI window and primary elements
         self.app.setSize(800, 600)  # Set the size of the GUI window
         self.app.setTitle("Group Client")  # Set the title of the GUI window
@@ -118,17 +124,20 @@ class GroupClientComponent:
         self.app.setButtonSticky("Show Instructions", "w")
 
         # Task elements
-        self.app.addLabel("listbox_tasks_label", "Waiting for TAs to assign tasks...")
+        self.app.addLabel("listbox_tasks_label",
+                          "Waiting for TAs to assign tasks...")
         self.app.setLabelSticky("listbox_tasks_label", "w")
         # Add a listbox to host the tasks
-        self.app.addListBox("listbox_tasks")
+        self.app.addTable(
+            "table_tasks", [["Task", "Description", "Duration", "Status"]])
 
-        # Button for marking a task as done
-        self.app.addButton("Mark task as done", self.on_mark_task_as_done)
-        self.app.setButtonSticky("Mark task as done", "w")
+        # Add button to registre that a task is done
+        self.app.addButton("Mark next task as done", self.mark_task_done)
+        self.app.setButtonSticky("Mark next task as done", "w")
 
         # Add lable for tasks done
-        self.app.addLabel("all_tasks_done_label", "").config(font="Helvetica 15")
+        self.app.addLabel("all_tasks_done_label",
+                          "").config(font="Helvetica 15")
         self.app.setLabelSticky("all_tasks_done_label", "w")
 
         # Request help elements
@@ -151,7 +160,7 @@ class GroupClientComponent:
 
         # Start the GUI
         self.app.go()
-    
+
     def stop(self):
         """
         Stop the component.
@@ -162,7 +171,7 @@ class GroupClientComponent:
         # stop the stmpy drivers
         self.group_stm_driver.stop()
         self.light_stm_driver.stop()
-        
+
         # Log the shutdown
         self._logger.info('Shutting down Component')
         exit()
@@ -212,7 +221,7 @@ class GroupClientComponent:
         # Set the label in the upper right corner
         self.app.setSticky("ne")
         self.app.setLabel("upper_right_label", self.team_text)
-        
+
         # Logging the team number
         self._logger.info(f'Team number: {self.group_nr}')
 
@@ -246,21 +255,31 @@ class GroupClientComponent:
         """ Update the queue number """
         self.app.setLabel("Help Queue", f"Queue Number: {self.queue_number}")
 
-    def on_mark_task_as_done(self):
-        """ Mark a task as done """
-        # Get the selected task
-        selected_task = self.app.getListBox("listbox_tasks")
-
-        # Test if the task is selected
-        if selected_task == []:
-            self.app.popUp("Error", "Please select a task", kind="error")
+    def mark_task_done(self):
+        """ Mark the first tast with status 'not done' as 'done' and the next task as 'in progress' """
+        # If there are no tasks, do nothing
+        if self.app.getTableRowCount("table_tasks") == 0:
+            self.app.setLabel("all_tasks_done_label", "There are no tasks to mark as done")
+            self._logger.info("There are no tasks to mark as done")
             return
 
-        # Remove the task from the listbox
-        self.app.removeListItem("listbox_tasks", selected_task)
+        # Find the first task with status 'not done'
+        for row in range(self.app.getTableRowCount("table_tasks")):
+            if self.app.getTableRow("table_tasks", row)[3] == "In progress":
+                # Mark the task as 'done'
+                data = self.app.getTableRow("table_tasks", row)
+                data[3] = "Done"
+                self.app.replaceTableRow("table_tasks", row, data)
+                # Mark the next task as 'in progress'
+                if row < self.app.getTableRowCount("table_tasks") - 1:
+                    data = self.app.getTableRow("table_tasks", row + 1)
+                    data[3] = "In progress"
+                    self.app.replaceTableRow("table_tasks", row + 1, data)
+                break
 
-        # Add lable that all tasks are done
-        if self.app.getListBox("listbox_tasks") == []:
+        # Check if all tasks are done
+        if self.app.getTableRow("table_tasks", self.app.getTableRowCount("table_tasks") - 1)[3] == "Done":
+            self.app.popUp("Info", "All tasks are done", kind="info")
             self.app.setLabel("all_tasks_done_label", "All tasks are done! Good job!")
 
 
@@ -281,4 +300,3 @@ if __name__ == '__main__':
 
     # Create a new instance of the GroupClientComponent
     client = GroupClientComponent()
- 
