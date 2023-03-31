@@ -15,6 +15,7 @@ MQTT_PORT = 1883
 MQTT_TOPIC_TASKS = 'ttm4115/project/team10/tasks'
 MQTT_TOPIC_INPUT = 'ttm4115/project/team10/request'
 MQTT_TOPIC_OUTPUT = 'ttm4115/project/team10/response'
+MQTT_TOPIC_PROGRESS = 'ttm4115/project/team10/progress'
 
 
 class GroupClientComponent:
@@ -52,10 +53,10 @@ class GroupClientComponent:
                 self.app.addTableRow(
                     "table_tasks", [task['task'], task['description'], task['duration'], status])
 
-    def publish_message(self, message):
+    def publish_message(self, topic, message):
         payload = json.dumps(message)
         self._logger.info('Publishing message: {}'.format(payload))
-        self.mqtt_client.publish(MQTT_TOPIC_INPUT, payload=payload, qos=2)
+        self.mqtt_client.publish(topic, payload=payload, qos=2)
 
     def retrieve_message(self):
         self.mqtt_client.subscribe(MQTT_TOPIC_OUTPUT)
@@ -241,7 +242,7 @@ class GroupClientComponent:
             return
         self.app.clearEntry("Description:")
         try:
-            self.publish_message(help_request)
+            self.publish_message(MQTT_TOPIC_INPUT, help_request)
             self.app.setLabel("Request feedback", "Request successfully sent!")
             self.app.setLabelFg("Request feedback", "green")
 
@@ -275,6 +276,9 @@ class GroupClientComponent:
                     data = self.app.getTableRow("table_tasks", row + 1)
                     data[3] = "In progress"
                     self.app.replaceTableRow("table_tasks", row + 1, data)
+                
+                # Report the task as done to the TAs
+                self.publish_message(MQTT_TOPIC_PROGRESS, f"Task {row + 1} is done")
                 break
 
         # Check if all tasks are done
