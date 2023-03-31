@@ -5,7 +5,8 @@ from datetime import datetime
 import logging
 import json
 import stmpy
-from threading import Thread
+
+NR_OF_TEAMS = 20
 
 # MQTT broker address
 MQTT_BROKER = 'mqtt20.iik.ntnu.no'
@@ -96,10 +97,10 @@ class GroupClientComponent:
 
         self._logger.debug('Component initialization finished')
 
-        # TODO removed later
-        self.nr_of_tasks = 5
-        self.teams = ['Select a team'] + [team for team in range(1, 21)]
-        self.image_path = '../../assets/green_light.png'
+        self.teams = ['Select a team'] + ["Team " + str(team) for team in range(1, NR_OF_TEAMS + 1)]
+
+        # Set the initial image path
+        self.image_path = '../../assets/green_off.png'
 
         # Settup the GUI
         self.setup_gui()
@@ -208,15 +209,7 @@ class GroupClientComponent:
             self.app.popUp("Error", "Please choose a team", kind="error")
             return
 
-        # Test if message is a number
-        try:
-            int(message)
-        except ValueError:
-            self.app.popUp("Error", "Please enter a number", kind="error")
-            return
-
-        self.group_nr = message
-        self.team_text = "Team " + self.group_nr
+        self.team_text = message
         # Close the popup window
         self.app.hideSubWindow("Enter Group Number")
         # Set the label in the upper right corner
@@ -224,7 +217,7 @@ class GroupClientComponent:
         self.app.setLabel("upper_right_label", self.team_text)
 
         # Logging the team number
-        self._logger.info(f'Team number: {self.group_nr}')
+        self._logger.info(f'Team number: {self.team_text}')
 
     def sub_window_closed(self):
         """ Close the application if the popup window is closed """
@@ -278,7 +271,7 @@ class GroupClientComponent:
                     self.app.replaceTableRow("table_tasks", row + 1, data)
                 
                 # Report the task as done to the TAs
-                self.publish_message(MQTT_TOPIC_PROGRESS, f"Task {row + 1} is done")
+                self.publish_message(MQTT_TOPIC_PROGRESS + "/" + self.team_text, f"Task {row + 1} is done")
                 break
 
         # Check if all tasks are done
