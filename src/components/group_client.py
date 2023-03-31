@@ -16,7 +16,6 @@ MQTT_TOPIC_TASKS = 'ttm4115/project/team10/tasks'
 MQTT_TOPIC_INPUT = 'ttm4115/project/team10/request'
 MQTT_TOPIC_OUTPUT = 'ttm4115/project/team10/response'
 
-
 class GroupClientComponent:
 
     def on_connect(self, client, userdata, flags, rc):
@@ -30,18 +29,22 @@ class GroupClientComponent:
         self._logger.debug('Received message on topic {}, with payload {}'.format(
             topic, msg.payload))
 
-        # TODO unwrap JSON-encoded payload
+        # Unwrap JSON-encoded payload
         try:
-            payload = json.loads(msg.payload.decode())
+            payload = json.loads(msg.payload.decode('utf-8'))
         except json.JSONDecodeError:
             self._logger.error(
                 'Could not decode JSON from message {}'.format(msg.payload))
             return
 
         # Handle the different commands
-        if topic == 'tasks':
+        if topic == MQTT_TOPIC_TASKS:
+            self.app.setLabel("listbox_tasks_label", "")
+            
+            # Populate the listbox with tasks
             for task in payload:
-                self.app.addCheckBox(task)
+                name = f"{task['task']} {task['duration']} minutes"
+                self.app.addListItem("listbox_tasks", name)
         
 
     def publish_message(self, message):
@@ -88,8 +91,7 @@ class GroupClientComponent:
         self._logger.debug('Component initialization finished')
         
         # TODO removed later
-        self.tasks = ["Task 1: Implement a linked list. Duration: 30min", "Task 2: Implement a stack. Duration: 30min",
-                      "Task 3: Implement a queue. Duration: 30min", "Task 4: Implement a binary search tree. Duration: 30min", "Task 5: Implement a hash table. Duration: 30min"]
+        self.nr_of_tasks = 5
         self.teams = ['Select a team'] + [team for team in range(1, 21)]
         self.image_path = '../../assets/green_light.png'
 
@@ -116,9 +118,10 @@ class GroupClientComponent:
         self.app.setButtonSticky("Show Instructions", "w")
 
         # Task elements
-        # Add all tasks to the listbox
-        for task in self.tasks:
-            self.app.addCheckBox(task)
+        self.app.addLabel("listbox_tasks_label", "Waiting for TAs to assign tasks...")
+        self.app.setLabelSticky("listbox_tasks_label", "w")
+        # Add a listbox to host the tasks
+        self.app.addListBox("listbox_tasks")
 
         # Request help elements
         self.app.addLabel("description_label",
