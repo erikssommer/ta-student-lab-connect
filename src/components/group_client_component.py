@@ -265,6 +265,7 @@ class GroupClientComponent:
 
     def mark_task_done(self):
         """ Mark the first tast with status 'not done' as 'done' and the next task as 'in progress' """
+        duration = None
         # If there are no tasks, do nothing
         if self.app.getTableRowCount("table_tasks") == 0:
             self.app.setLabel("all_tasks_done_label", "There are no tasks to mark as done")
@@ -277,6 +278,7 @@ class GroupClientComponent:
                 # Mark the task as 'done'
                 data = self.app.getTableRow("table_tasks", row)
                 data[3] = "Done"
+                duration = data[2]
                 self.app.replaceTableRow("table_tasks", row, data)
                 # Mark the next task as 'in progress'
                 if row < self.app.getTableRowCount("table_tasks") - 1:
@@ -287,11 +289,16 @@ class GroupClientComponent:
                 # Report the task as done to the TAs
                 self.publish_message(MQTT_TOPIC_PROGRESS + "/" + self.team_text, f"Task {row + 1} is done")
                 break
+        
+        # TODO: Update the status light state machine
+        if duration is not None:
+            self.light_stm_driver.send('t', self.team_text)
 
         # Check if all tasks are done
         if self.app.getTableRow("table_tasks", self.app.getTableRowCount("table_tasks") - 1)[3] == "Done":
             self.app.popUp("Info", "All tasks are done", kind="info")
             self.app.setLabel("all_tasks_done_label", "All tasks are done! Good job!")
+            self.light_stm_driver.send('tasks_done', self.team_text)
 
     
     def set_status_light(self, light):

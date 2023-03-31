@@ -25,6 +25,7 @@ class StatusLight:
             {'source': 'GREEN', 'trigger': 't', 'target': 'YELLOW', 'effect': 'on_enter_YELLOW'},
             {'source': 'YELLOW', 'trigger': 't', 'target': 'RED', 'effect': 'on_enter_RED'},
             {'source': 'RED', 'trigger': 't', 'target': 'GREEN', 'effect': 'on_enter_GREEN'},
+            {'source': 'GREEN', 'trigger': 'tasks_done', 'target': 'initial', 'effect': 'turn_off'},
         ]
 
         # Define the state machine
@@ -37,6 +38,9 @@ class StatusLight:
         status_light.stm = status_light_stm
 
         return status_light_stm
+    
+    def start_timer(self, time):
+        self.stm.start_timer('t', time)
     
     def on_enter_GREEN(self):
         self._logger.debug("Entering GREEN state")
@@ -52,4 +56,7 @@ class StatusLight:
 
     def on_exit_GREEN(self):
         self._logger.debug("Exiting GREEN state")
+        self.component.set_status_light(self.green_light_off)
+
+    def turn_off(self):
         self.component.set_status_light(self.green_light_off)
