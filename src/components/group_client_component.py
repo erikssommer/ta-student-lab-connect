@@ -6,6 +6,7 @@ import logging
 import json
 import stmpy
 from threading import Thread
+from state_machines.status_light_stm import StatusLight
 
 NR_OF_TEAMS = 20
 
@@ -54,6 +55,12 @@ class GroupClientComponent:
                     status = "Not done"
                 self.app.addTableRow(
                     "table_tasks", [task['task'], task['description'], task['duration'], status])
+        
+            # Create a new status light state machine
+            status_light_stm = StatusLight.create_machine(team=self.team_text, component=self)
+            # Add the state machine to the driver
+            self.light_stm_driver.add_machine(status_light_stm)
+
 
     def publish_message(self, topic, message):
         payload = json.dumps(message)
@@ -107,7 +114,7 @@ class GroupClientComponent:
         self.teams = ['Select a team'] + ["Team " + str(team) for team in range(1, NR_OF_TEAMS + 1)]
 
         # Set the initial image path
-        self.image_path = '../../assets/green_off.png'
+        self.image_path = "../assets/green_off.png"
 
         # Settup the GUI
         self.setup_gui()
@@ -285,22 +292,3 @@ class GroupClientComponent:
         if self.app.getTableRow("table_tasks", self.app.getTableRowCount("table_tasks") - 1)[3] == "Done":
             self.app.popUp("Info", "All tasks are done", kind="info")
             self.app.setLabel("all_tasks_done_label", "All tasks are done! Good job!")
-
-
-if __name__ == '__main__':
-    # logging.DEBUG: Most fine-grained logging, printing everything
-    # logging.INFO:  Only the most important informational log items
-    # logging.WARN:  Show only warnings and errors.
-    # logging.ERROR: Show only error messages.
-    debug_level = logging.DEBUG
-    logger = logging.getLogger(__name__)
-    logger.setLevel(debug_level)
-    ch = logging.StreamHandler()
-    ch.setLevel(debug_level)
-    formatter = logging.Formatter(
-        '%(asctime)s - %(name)-12s - %(levelname)-8s - %(message)s')
-    ch.setFormatter(formatter)
-    logger.addHandler(ch)
-
-    # Create a new instance of the GroupClientComponent
-    client = GroupClientComponent()
