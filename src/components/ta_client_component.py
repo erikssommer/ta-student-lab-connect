@@ -17,6 +17,7 @@ MQTT_TOPIC_INPUT = 'ttm4115/project/team10/input'
 MQTT_TOPIC_TASKS = 'ttm4115/project/team10/tasks'
 MQTT_TOPIC_OUTPUT = 'ttm4115/project/team10/output'
 MQTT_TOPIC_REQUEST_HELP = 'ttm4115/project/team10/request'
+MQTT_TOPIC_GROUP_PRESENT = 'ttm4115/project/team10/present'
 
 
 class TaClientComponent:
@@ -43,6 +44,10 @@ class TaClientComponent:
         if topic == MQTT_TOPIC_REQUEST_HELP:
             # Handle the request for help
             self.handle_request_help(payload)
+        elif topic == MQTT_TOPIC_GROUP_PRESENT:
+            # Handle the group present message
+            self.handle_group_present(payload)
+        
 
     def publish_message(self, topic, message):
         payload = json.dumps(message)
@@ -69,6 +74,7 @@ class TaClientComponent:
         self.mqtt_client.subscribe(MQTT_TOPIC_INPUT)
         self.mqtt_client.subscribe(MQTT_TOPIC_TASKS)
         self.mqtt_client.subscribe(MQTT_TOPIC_REQUEST_HELP)
+        self.mqtt_client.subscribe(MQTT_TOPIC_GROUP_PRESENT)
 
         # Start the MQTT client in a separate thread to avoid blocking
         try:
@@ -133,12 +139,19 @@ class TaClientComponent:
 
         # Label for the table of groups getting help
         self.app.addLabel("groups_getting_help_label",
-                          "Groups getting help:").config(font="Helvetica 15")
+                          "Groups getting help: (ordered by time)").config(font="Helvetica 15")
         self.app.setLabelSticky("groups_getting_help_label", "w")
 
         # Add a table of groups getting help
         self.app.addTable("groups_getting_help", [
                           ["Group", "Description", "Time", "TA"]], action=self.assign_got_help, actionButton="Mark as got help")
+        
+        # Add label for group status
+        self.app.addLabel("group_status_label", "Groups present and status:").config(font="Helvetica 15")
+        self.app.setLabelSticky("group_status_label", "w")
+
+        # Add a table of groups and their status
+        self.app.addTable("group_status", [["Group", "Current task"]])
 
         self.init_popup()
 
@@ -184,6 +197,14 @@ class TaClientComponent:
 
         # Log the action
         self._logger.info(f"Group {data[0]} got help")
+    
+    def handle_group_present(self, payload):
+        # Get the data from the payload
+        group = payload[0]['group']
+        task = payload[0]['current_task']
+
+        # Add the data to the table of groups and their status
+        self.app.addTableRow("group_status", [group, task])
 
     def show_instructions(self):
         self.app.infoBox(title="Instructions",

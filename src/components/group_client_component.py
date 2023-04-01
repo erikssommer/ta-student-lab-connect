@@ -19,6 +19,7 @@ MQTT_TOPIC_TASKS = 'ttm4115/project/team10/tasks'
 MQTT_TOPIC_REQUEST_HELP = 'ttm4115/project/team10/request'
 MQTT_TOPIC_OUTPUT = 'ttm4115/project/team10/response'
 MQTT_TOPIC_PROGRESS = 'ttm4115/project/team10/progress'
+MQTT_TOPIC_GROUP_PRESENT = 'ttm4115/project/team10/present'
 
 
 class GroupClientComponent:
@@ -91,6 +92,7 @@ class GroupClientComponent:
         # Subscribe to the input topic
         self.mqtt_client.subscribe(MQTT_TOPIC_REQUEST_HELP)
         self.mqtt_client.subscribe(MQTT_TOPIC_TASKS)
+        self.mqtt_client.subscribe(MQTT_TOPIC_GROUP_PRESENT)
 
         # Start the MQTT client in a separate thread to avoid blocking
         try:
@@ -233,6 +235,10 @@ class GroupClientComponent:
         # Logging the team number
         self._logger.info(f'Team number: {self.team_text}')
 
+        # Notify the TAs that the group is ready
+        data_object = [{"group": self.team_text, "current_task": "Waiting for TAs to assign tasks..."}]
+        self.publish_message(MQTT_TOPIC_GROUP_PRESENT, data_object)
+
     def sub_window_closed(self):
         """ Close the application if the popup window is closed """
         # Close the application if the popup window is closed
@@ -259,7 +265,7 @@ class GroupClientComponent:
                 "description": help_request[1],
                 "time": help_request[2]
             }
-            
+
             output_list.append(task_dict)
 
             self.publish_message(MQTT_TOPIC_REQUEST_HELP, output_list)
