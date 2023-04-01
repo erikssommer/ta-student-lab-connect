@@ -113,7 +113,7 @@ class TaClientComponent:
         self.app.setBg("light blue")  # Set the background color of the GUI window
 
         # Set the size of the GUI window and primary elements
-        self.app.setSize(800, 1000)  # Set the size of the GUI window
+        self.app.setSize(800, 1050)  # Set the size of the GUI window
 
         self.app.setResizable(canResize=False)
 
