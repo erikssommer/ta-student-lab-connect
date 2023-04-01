@@ -106,14 +106,16 @@ class TaClientComponent:
         self.app.setButtonSticky("Submit tasks", "w")
 
         # Label for the table of groups requesting help
-        self.app.addLabel("groups_request_label", "Groups requesting help:").config(font="Helvetica 15")
-        self.app.setLabelSticky("groups_request_label", "w")
+        self.app.addLabel("groups_request_help_label",
+                          "Groups requesting help:").config(font="Helvetica 15")
+        self.app.setLabelSticky("groups_request_help_label", "w")
         # Add a table of groups requesting help
-        self.app.addTable("groups", [
+        self.app.addTable("groups_request_help", [
                           ["Group", "Description", "Time"]], action=self.assign_getting_help, actionButton="Mark as getting help")
-        
+
         # Label for the table of groups getting help
-        self.app.addLabel("groups_getting_help_label", "Groups getting help:").config(font="Helvetica 15")
+        self.app.addLabel("groups_getting_help_label",
+                          "Groups getting help:").config(font="Helvetica 15")
         self.app.setLabelSticky("groups_getting_help_label", "w")
 
         # Add a table of groups getting help
@@ -128,10 +130,24 @@ class TaClientComponent:
         self.app.go()
 
     def assign_getting_help(self, row):
-        pass
+        # Get the row of the table
+        data = self.app.getTableRow("groups_request_help", row)
+        # Add the row to the table of groups getting help
+        self.app.addTableRow("groups_getting_help", data)
+        # Remove the row from the table of groups requesting help
+        self.app.deleteTableRow("groups_request_help", row)
+
+        # Log the action
+        self._logger.info(f"Group {data[0]} is getting help")
 
     def assign_got_help(self, row):
-        pass
+        # Get the row of the table
+        data = self.app.getTableRow("groups_getting_help", row)
+        # Remove the row from the table of groups getting help
+        self.app.deleteTableRow("groups_getting_help", row)
+
+        # Log the action
+        self._logger.info(f"Group {data[0]} got help")
 
     def show_instructions(self):
         self.app.infoBox(title="Instructions",
