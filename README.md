@@ -10,7 +10,7 @@ Semester project in the course Design of Communicating Systems at NTNU Trondheim
 - Petter Leine Alnes
 
 ## Project description
-This project uses MQTT as communication protocol between two clients, a TA client and a student group client. The TA client is used to send out questions to the student group client. The student group client is used to answer the questions. The TA client can also send out a message to the student group client to indicate that the question is answered. The student group client can also send out a message to the TA client to indicate that the question is answered. 
+This project uses MQTT as communication protocol between two clients, a TA client and a student group client. The TA client is used to send out tasks to the student group clients. The student group clients is used by the groups to register progress and request help if needed. The TA client can then see the progress of the groups and help them if needed.
 
 ## How to run the project
 ### Install required packages
