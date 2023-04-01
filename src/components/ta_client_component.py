@@ -18,6 +18,7 @@ MQTT_TOPIC_TASKS = 'ttm4115/project/team10/tasks'
 MQTT_TOPIC_OUTPUT = 'ttm4115/project/team10/output'
 MQTT_TOPIC_REQUEST_HELP = 'ttm4115/project/team10/request'
 MQTT_TOPIC_GROUP_PRESENT = 'ttm4115/project/team10/present'
+MQTT_TOPIC_GROUP_DONE = 'ttm4115/project/team10/done'
 
 
 class TaClientComponent:
@@ -47,6 +48,9 @@ class TaClientComponent:
         elif topic == MQTT_TOPIC_GROUP_PRESENT:
             # Handle the group present message
             self.handle_group_present(payload)
+        elif topic == MQTT_TOPIC_GROUP_DONE:
+            # Handle the group done message
+            self.handle_group_done(payload)
         
 
     def publish_message(self, topic, message):
@@ -75,6 +79,7 @@ class TaClientComponent:
         self.mqtt_client.subscribe(MQTT_TOPIC_TASKS)
         self.mqtt_client.subscribe(MQTT_TOPIC_REQUEST_HELP)
         self.mqtt_client.subscribe(MQTT_TOPIC_GROUP_PRESENT)
+        self.mqtt_client.subscribe(MQTT_TOPIC_GROUP_DONE)
 
         # Start the MQTT client in a separate thread to avoid blocking
         try:
@@ -169,6 +174,9 @@ class TaClientComponent:
         # Add the data to the table of groups requesting help
         self.app.addTableRow("groups_request_help", [
                              group, description, time])
+        
+        # Sort the table by time
+        self.app.sortTable("groups_request_help", 2)
 
         # Log the action
         self._logger.info(
@@ -205,6 +213,24 @@ class TaClientComponent:
 
         # Add the data to the table of groups and their status
         self.app.addTableRow("group_status", [group, task])
+
+    def handle_group_done(self, payload):
+        # Get the data from the payload
+        group = payload[0]['group']
+        delete_row = None
+
+        # Find the row of the group in the table
+        for row in range(self.app.getTableRowCount("group_status")):
+            if self.app.getTableRow("group_status", row)[0] == group:
+                delete_row = row
+                break
+        
+        if delete_row is None:
+            self._logger.error(f"Group {group} not found in table")
+            return
+        
+        # Remove the row from the table of groups and their status
+        self.app.deleteTableRow("group_status", delete_row)
 
     def show_instructions(self):
         self.app.infoBox(title="Instructions",

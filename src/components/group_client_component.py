@@ -20,6 +20,7 @@ MQTT_TOPIC_REQUEST_HELP = 'ttm4115/project/team10/request'
 MQTT_TOPIC_OUTPUT = 'ttm4115/project/team10/response'
 MQTT_TOPIC_PROGRESS = 'ttm4115/project/team10/progress'
 MQTT_TOPIC_GROUP_PRESENT = 'ttm4115/project/team10/present'
+MQTT_TOPIC_GROUP_DONE = 'ttm4115/project/team10/done'
 
 
 class GroupClientComponent:
@@ -321,6 +322,10 @@ class GroupClientComponent:
             self.app.setLabel("all_tasks_done_label",
                               "All tasks are done! Good job!")
             self.light_stm_driver.send('tasks_done', self.team_text)
+
+            # Report the task as done to the TAs
+            message = [{"group": self.team_text}]
+            self.publish_message(MQTT_TOPIC_GROUP_DONE, message)
 
     def set_status_light(self, light):
         """ Set the status light """
