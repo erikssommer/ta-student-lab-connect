@@ -1,4 +1,3 @@
-import logging
 from threading import Thread
 import paho.mqtt.client as mqtt
 import stmpy
@@ -62,9 +61,9 @@ class TaClientComponent:
             'Publishing message to topic {}: {}'.format(topic, payload))
         self.mqtt_client.publish(topic, payload, qos=2)
 
-    def __init__(self):
+    def __init__(self, logger):
         # get the logger object for the component
-        self._logger = logging.getLogger(__name__)
+        self._logger = logger
         print('logging under name {}.'.format(__name__))
         self._logger.info('Starting Component')
 
@@ -112,6 +111,12 @@ class TaClientComponent:
 
         # Set the size of the GUI window and primary elements
         self.app.setSize(800, 1000)  # Set the size of the GUI window
+
+        self.app.setResizable(canResize=False)
+
+        # Set the font size of the buttons
+        self.app.setButtonFont(size=15, family="Verdana", underline=False, slant="roman")
+
         self.app.setTitle("TA client")  # Set the title of the GUI window
         # Set the label in the upper right corner
         self.app.addLabel("upper_right_label_date",

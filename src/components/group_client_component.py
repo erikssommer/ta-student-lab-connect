@@ -2,7 +2,6 @@
 import paho.mqtt.client as mqtt
 from appJar import gui
 from datetime import datetime
-import logging
 import json
 import stmpy
 from threading import Thread
@@ -78,11 +77,11 @@ class GroupClientComponent:
         self.mqtt_client.subscribe(MQTT_TOPIC_OUTPUT)
         self.mqtt_client.on_message = self.on_message
 
-    def __init__(self):
+    def __init__(self, logger):
         self.queue_number = 0
 
         # get the logger object for the component
-        self._logger = logging.getLogger(__name__)
+        self._logger = logger
         print('logging under name {}.'.format(__name__))
         self._logger.info('Starting Component')
 
@@ -134,6 +133,13 @@ class GroupClientComponent:
         # Set the size of the GUI window and primary elements
         self.app.setSize(800, 600)  # Set the size of the GUI window
         self.app.setTitle("Group Client")  # Set the title of the GUI window
+
+        self.app.setResizable(canResize=False)
+
+        # Set the font size of the buttons
+        self.app.setButtonFont(size=15, family="Verdana", underline=False, slant="roman")
+
+
         self.app.addLabel("upper_right_label_date",
                           f"Date: {datetime.now().strftime('%d/%m/%Y')}")
         self.app.addLabel("upper_right_label", "Team Number")
@@ -148,7 +154,7 @@ class GroupClientComponent:
         self.app.addLabel("subtitle", "Tasks for this lab session:").config(
             font="Helvetica 15")
         self.app.setLabelSticky("subtitle", "w")
-        self.app.addButton("Show Instructions", self.show_message)
+        self.app.addButton("Show Instructions", self.show_message).configure(bg='#0000FF')
         self.app.setButtonSticky("Show Instructions", "w")
 
         # Task elements

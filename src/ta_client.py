@@ -18,4 +18,4 @@ if __name__ == '__main__':
     logger.addHandler(ch)
 
     # Create a new instance of the TA client component
-    client = TaClientComponent()
+    client = TaClientComponent(logger)
