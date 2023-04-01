@@ -4,6 +4,7 @@ import paho.mqtt.client as mqtt
 import stmpy
 from appJar import gui
 from datetime import datetime
+import json
 
 # TA client component
 
@@ -12,9 +13,9 @@ MQTT_BROKER = 'mqtt20.iik.ntnu.no'
 MQTT_PORT = 1883
 
 # MQTT topics
-MQTT_TOPIC_INPUT = 'ttm4115/project/team_10/input'
-MQTT_TOPIC_TASKS = 'ttm4115/project/team_10/tasks'
-MQTT_TOPIC_OUTPUT = 'ttm4115/project/team_10/output'
+MQTT_TOPIC_INPUT = 'ttm4115/project/team10/input'
+MQTT_TOPIC_TASKS = 'ttm4115/project/team10/tasks'
+MQTT_TOPIC_OUTPUT = 'ttm4115/project/team10/output'
 
 class TaClientComponent:
     def on_connect(self, client, userdata, flags, rc):
@@ -81,6 +82,16 @@ class TaClientComponent:
 
         self.app.addLabel("title", "Welcome to the lab").config(
             font="Helvetica 25")
+        
+        self.app.addLabel("subtitle", "Add tasks for the lab session:").config(
+            font="Helvetica 15")
+        self.app.setLabelSticky("subtitle", "w")
+        # Set up a table to contain the tasks
+        self.app.addTable("assigned_tasks", [["Description", "Duration"]], addRow=self.add_task, addButton='Add task')
+
+        # Add a button to submit the tasks
+        self.app.addButton("Submit tasks", self.submit_tasks)
+        self.app.setButtonSticky("Submit tasks", "w")
 
         self.init_popup()
 
@@ -88,7 +99,48 @@ class TaClientComponent:
 
         # Start the GUI
         self.app.go()
-    
+
+    def add_task(self):
+        data_list = self.app.getTableEntries("assigned_tasks")
+
+        # Test if the description or duration is empty
+        if data_list[0] == "" or data_list[1] == "":
+            self.app.popUp("Error", "Description and duration must be filled", kind="error")
+            return
+
+        # Test if the duration is a number
+        try:
+            int(data_list[1])
+        except ValueError:
+            self.app.popUp("Error", "Duration must be a number", kind="error")
+            return
+
+        self.app.addTableRow("assigned_tasks", data_list)
+
+    def submit_tasks(self):
+        data_list = []
+
+        for row in range(self.app.getTableRowCount("assigned_tasks")):
+            data_list.append(self.app.getTableRow("assigned_tasks", row))
+
+        # Convert into a json list of dictionaries
+        output_list = []
+
+        for index, sublist in enumerate(data_list):
+            task_dict = {
+                "task": str(index+1),
+                "description": sublist[0],
+                "duration": sublist[1]
+            }
+            output_list.append(task_dict)
+
+        # Convert into json
+        json_data = json.dumps(output_list)
+        
+        # Publish the tasks to the MQTT broker
+        self.mqtt_client.publish(MQTT_TOPIC_TASKS, json_data)
+
+
     def stop(self):
         """
         Stop the component.
