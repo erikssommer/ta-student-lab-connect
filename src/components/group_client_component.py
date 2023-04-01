@@ -16,7 +16,7 @@ MQTT_PORT = 1883
 
 # MQTT topics
 MQTT_TOPIC_TASKS = 'ttm4115/project/team10/tasks'
-MQTT_TOPIC_INPUT = 'ttm4115/project/team10/request'
+MQTT_TOPIC_REQUEST_HELP = 'ttm4115/project/team10/request'
 MQTT_TOPIC_OUTPUT = 'ttm4115/project/team10/response'
 MQTT_TOPIC_PROGRESS = 'ttm4115/project/team10/progress'
 
@@ -42,7 +42,7 @@ class GroupClientComponent:
                 'Could not decode JSON from message {}'.format(msg.payload))
             return
 
-        # Handle the different commands
+        # Handle the different topics
         if topic == MQTT_TOPIC_TASKS:
             self.app.setLabel("listbox_tasks_label", "")
 
@@ -55,12 +55,12 @@ class GroupClientComponent:
                     status = "Not done"
                 self.app.addTableRow(
                     "table_tasks", [task['task'], task['description'], task['duration'], status])
-        
+
             # Create a new status light state machine
-            status_light_stm = StatusLight.create_machine(team=self.team_text, component=self)
+            status_light_stm = StatusLight.create_machine(
+                team=self.team_text, component=self)
             # Add the state machine to the driver
             self.light_stm_driver.add_machine(status_light_stm)
-
 
     def publish_message(self, topic, message):
         payload = json.dumps(message)
@@ -89,7 +89,7 @@ class GroupClientComponent:
         # Connect to the broker
         self.mqtt_client.connect(MQTT_BROKER, MQTT_PORT)
         # Subscribe to the input topic
-        self.mqtt_client.subscribe(MQTT_TOPIC_INPUT)
+        self.mqtt_client.subscribe(MQTT_TOPIC_REQUEST_HELP)
         self.mqtt_client.subscribe(MQTT_TOPIC_TASKS)
 
         # Start the MQTT client in a separate thread to avoid blocking
@@ -111,7 +111,8 @@ class GroupClientComponent:
 
         self._logger.debug('Component initialization finished')
 
-        self.teams = ['Select a team'] + ["Team " + str(team) for team in range(1, NR_OF_TEAMS + 1)]
+        self.teams = ['Select a team'] + ["Team " +
+                                          str(team) for team in range(1, NR_OF_TEAMS + 1)]
 
         # Set the initial image path
         self.image_path = "../assets/green_off.png"
@@ -248,7 +249,20 @@ class GroupClientComponent:
             return
         self.app.clearEntry("Description:")
         try:
-            self.publish_message(MQTT_TOPIC_INPUT, help_request)
+            # Create the help request message
+            help_request = [self.team_text, help_request,
+                            datetime.now().strftime('%H:%M:%S')]
+            output_list = []
+
+            task_dict = {
+                "group": help_request[0],
+                "description": help_request[1],
+                "time": help_request[2]
+            }
+            
+            output_list.append(task_dict)
+
+            self.publish_message(MQTT_TOPIC_REQUEST_HELP, output_list)
             self.app.setLabel("Request feedback", "Request successfully sent!")
             self.app.setLabelFg("Request feedback", "green")
 
@@ -267,7 +281,8 @@ class GroupClientComponent:
         duration = None
         # If there are no tasks, do nothing
         if self.app.getTableRowCount("table_tasks") == 0:
-            self.app.setLabel("all_tasks_done_label", "There are no tasks to mark as done")
+            self.app.setLabel("all_tasks_done_label",
+                              "There are no tasks to mark as done")
             self._logger.info("There are no tasks to mark as done")
             return
 
@@ -284,11 +299,12 @@ class GroupClientComponent:
                     data = self.app.getTableRow("table_tasks", row + 1)
                     data[3] = "In progress"
                     self.app.replaceTableRow("table_tasks", row + 1, data)
-                
+
                 # Report the task as done to the TAs
-                self.publish_message(MQTT_TOPIC_PROGRESS + "/" + self.team_text, f"Task {row + 1} is done")
+                self.publish_message(
+                    MQTT_TOPIC_PROGRESS + "/" + self.team_text, f"Task {row + 1} is done")
                 break
-        
+
         # TODO: Update the status light state machine
         if duration is not None:
             self.light_stm_driver.send('t', self.team_text)
@@ -296,10 +312,10 @@ class GroupClientComponent:
         # Check if all tasks are done
         if self.app.getTableRow("table_tasks", self.app.getTableRowCount("table_tasks") - 1)[3] == "Done":
             self.app.popUp("Info", "All tasks are done", kind="info")
-            self.app.setLabel("all_tasks_done_label", "All tasks are done! Good job!")
+            self.app.setLabel("all_tasks_done_label",
+                              "All tasks are done! Good job!")
             self.light_stm_driver.send('tasks_done', self.team_text)
 
-    
     def set_status_light(self, light):
         """ Set the status light """
         self.app.setImage("light", light)

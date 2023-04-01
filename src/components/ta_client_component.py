@@ -16,6 +16,7 @@ MQTT_PORT = 1883
 MQTT_TOPIC_INPUT = 'ttm4115/project/team10/input'
 MQTT_TOPIC_TASKS = 'ttm4115/project/team10/tasks'
 MQTT_TOPIC_OUTPUT = 'ttm4115/project/team10/output'
+MQTT_TOPIC_REQUEST_HELP = 'ttm4115/project/team10/request'
 
 
 class TaClientComponent:
@@ -26,6 +27,22 @@ class TaClientComponent:
     def on_message(self, client, userdata, msg):
         # Log the message received
         self._logger.debug('MQTT received message: {}'.format(msg.payload))
+
+        # Get the topic
+        topic = msg.topic
+
+        # Unwrap the message
+        try:
+            payload = json.loads(msg.payload.decode('utf-8'))
+        except json.JSONDecodeError:
+            self._logger.error(
+                'Could not decode JSON from message {}'.format(msg.payload))
+            return
+        
+        # Handle the different topics
+        if topic == MQTT_TOPIC_REQUEST_HELP:
+            # Handle the request for help
+            self.handle_request_help(payload)
 
     def publish_message(self, topic, message):
         payload = json.dumps(message)
@@ -51,6 +68,7 @@ class TaClientComponent:
         # Subscribe to the input topic
         self.mqtt_client.subscribe(MQTT_TOPIC_INPUT)
         self.mqtt_client.subscribe(MQTT_TOPIC_TASKS)
+        self.mqtt_client.subscribe(MQTT_TOPIC_REQUEST_HELP)
 
         # Start the MQTT client in a separate thread to avoid blocking
         try:
@@ -78,7 +96,7 @@ class TaClientComponent:
         self.app = gui()
 
         # Set the size of the GUI window and primary elements
-        self.app.setSize(800, 800)  # Set the size of the GUI window
+        self.app.setSize(800, 1000)  # Set the size of the GUI window
         self.app.setTitle("TA client")  # Set the title of the GUI window
         # Set the label in the upper right corner
         self.app.addLabel("upper_right_label_date",
@@ -128,6 +146,22 @@ class TaClientComponent:
 
         # Start the GUI
         self.app.go()
+
+    def handle_request_help(self, payload):
+        
+        print(payload)
+        # Get the data from the payload
+        group = payload[0]['group']
+        description = payload[0]['description']
+        time = payload[0]['time']
+
+        # Add the data to the table of groups requesting help
+        self.app.addTableRow("groups_request_help", [
+                             group, description, time])
+
+        # Log the action
+        self._logger.info(
+            f"Group {group} requested help with {description} at {time}")
 
     def assign_getting_help(self, row):
         # Get the row of the table
