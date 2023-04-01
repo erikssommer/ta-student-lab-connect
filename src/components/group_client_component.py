@@ -6,6 +6,7 @@ import json
 import stmpy
 from threading import Thread
 from state_machines.status_light_stm import StatusLight
+import logging
 
 NR_OF_TEAMS = 20
 
@@ -81,7 +82,7 @@ class GroupClientComponent:
         self.queue_number = 0
 
         # get the logger object for the component
-        self._logger = logger
+        self._logger: logging.Logger = logger
         print('logging under name {}.'.format(__name__))
         self._logger.info('Starting Component')
 
@@ -130,8 +131,10 @@ class GroupClientComponent:
     def setup_gui(self):
         self.app = gui()
 
+        self.app.setBg("light blue")  # Set the background color of the GUI window
+
         # Set the size of the GUI window and primary elements
-        self.app.setSize(800, 600)  # Set the size of the GUI window
+        self.app.setSize(800, 800)  # Set the size of the GUI window
         self.app.setTitle("Group Client")  # Set the title of the GUI window
 
         self.app.setResizable(canResize=False)
@@ -141,8 +144,8 @@ class GroupClientComponent:
 
 
         self.app.addLabel("upper_right_label_date",
-                          f"Date: {datetime.now().strftime('%d/%m/%Y')}")
-        self.app.addLabel("upper_right_label", "Team Number")
+                          f"Date: {datetime.now().strftime('%d/%m/%Y')}").config(font="Helvetica 15")
+        self.app.addLabel("upper_right_label", "Team Number").config(font="Helvetica 15")
         self.app.setLabelSticky("upper_right_label", "ne")
         self.app.setLabelSticky("upper_right_label_date", "ne")
 
@@ -154,8 +157,11 @@ class GroupClientComponent:
         self.app.addLabel("subtitle", "Tasks for this lab session:").config(
             font="Helvetica 15")
         self.app.setLabelSticky("subtitle", "w")
-        self.app.addButton("Show Instructions", self.show_message).configure(bg='#0000FF')
+        self.app.addButton("Show Instructions", self.show_message)
         self.app.setButtonSticky("Show Instructions", "w")
+
+        # Add empty label for spacing
+        self.app.addEmptyLabel("empty_label")
 
         # Task elements
         self.app.addLabel("listbox_tasks_label",
@@ -177,13 +183,13 @@ class GroupClientComponent:
         # Request help elements
         self.app.addLabel("description_label",
                           "Need help? - Ask TAs for help!")
-        self.app.addLabelEntry("Description:")
+        self.app.addLabelEntry("Description:").config(font="Helvetica 15")
         self.app.addButton("Request Help", self.on_request_help)
         self.app.addLabel("Request feedback", "")
         self.app.addLabel("Help Queue", "")
 
         # Add a horizontal separator
-        self.app.addHorizontalSeparator(colour="black")
+        self.app.addHorizontalSeparator(16,0,4,colour="black")
 
         # Light status elements
         self.app.addLabel("light_label", "Light status:")

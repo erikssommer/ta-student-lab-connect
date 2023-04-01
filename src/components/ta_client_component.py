@@ -4,6 +4,7 @@ import stmpy
 from appJar import gui
 from datetime import datetime
 import json
+import logging
 
 # TA client component
 
@@ -63,7 +64,7 @@ class TaClientComponent:
 
     def __init__(self, logger):
         # get the logger object for the component
-        self._logger = logger
+        self._logger: logging.Logger = logger
         print('logging under name {}.'.format(__name__))
         self._logger.info('Starting Component')
 
@@ -109,6 +110,8 @@ class TaClientComponent:
     def setup_gui(self):
         self.app = gui()
 
+        self.app.setBg("light blue")  # Set the background color of the GUI window
+
         # Set the size of the GUI window and primary elements
         self.app.setSize(800, 1000)  # Set the size of the GUI window
 
@@ -120,8 +123,8 @@ class TaClientComponent:
         self.app.setTitle("TA client")  # Set the title of the GUI window
         # Set the label in the upper right corner
         self.app.addLabel("upper_right_label_date",
-                          f"Date: {datetime.now().strftime('%d/%m/%Y')}")
-        self.app.addLabel("upper_right_label", "TA name")
+                          f"Date: {datetime.now().strftime('%d/%m/%Y')}").config(font="Helvetica 15")
+        self.app.addLabel("upper_right_label", "TA name").config(font="Helvetica 15")
         self.app.setLabelSticky("upper_right_label_date", "ne")
         self.app.setLabelSticky("upper_right_label", "ne")
 
@@ -138,6 +141,9 @@ class TaClientComponent:
         self.app.addButton("Show Instructions", self.show_instructions)
         self.app.setButtonSticky("Show Instructions", "w")
 
+        # Empty label to separate the tables
+        self.app.addEmptyLabel("empty_label1")
+
         # Set up a table to contain the tasks
         self.app.addTable("assigned_tasks", [
                           ["Description", "Duration"]], addRow=self.add_task, addButton='Add task')
@@ -145,6 +151,9 @@ class TaClientComponent:
         # Add a button to submit the tasks
         self.app.addButton("Submit tasks", self.submit_tasks)
         self.app.setButtonSticky("Submit tasks", "w")
+
+        # Empty label to separate the tables
+        self.app.addEmptyLabel("empty_label2")
 
         # Label for the table of groups requesting help
         self.app.addLabel("groups_request_help_label",
@@ -294,6 +303,11 @@ class TaClientComponent:
         self.app.addTableRow("assigned_tasks", data_list)
 
     def submit_tasks(self):
+        # Test if there are any tasks
+        if self.app.getTableRowCount("assigned_tasks") == 0:
+            self.app.popUp("Error", "There are no tasks to submit", kind="error")
+            return
+
         data_list = []
 
         for row in range(self.app.getTableRowCount("assigned_tasks")):
