@@ -58,6 +58,11 @@ class GroupClientComponent:
                 self.app.addTableRow(
                     "table_tasks", [task['task'], task['description'], task['duration'], status])
 
+            # Set the status of the first task to "in progress"
+            # Report the task as done to the TAs
+            message = [{"group": self.team_text, "current_task": "1"}]
+            self.report_current_task(message)
+
             # Create a new status light state machine
             status_light_stm = StatusLight.create_machine(
                 team=self.team_text, component=self)
@@ -241,7 +246,8 @@ class GroupClientComponent:
         self._logger.info(f'Team number: {self.team_text}')
 
         # Notify the TAs that the group is ready
-        data_object = [{"group": self.team_text, "current_task": "Waiting for TAs to assign tasks..."}]
+        data_object = [{"group": self.team_text,
+                        "current_task": "Waiting for TAs to assign tasks..."}]
         self.publish_message(MQTT_TOPIC_GROUP_PRESENT, data_object)
 
     def sub_window_closed(self):
@@ -313,7 +319,7 @@ class GroupClientComponent:
 
                 # Report the task as done to the TAs
                 message = [{"group": self.team_text, "current_task": data[0]}]
-                self.publish_message(MQTT_TOPIC_PROGRESS, message)
+                self.report_current_task(message)
                 break
 
         # TODO: Update the status light state machine
@@ -330,6 +336,9 @@ class GroupClientComponent:
             # Report the task as done to the TAs
             message = [{"group": self.team_text}]
             self.publish_message(MQTT_TOPIC_GROUP_DONE, message)
+
+    def report_current_task(self, message):
+        self.publish_message(MQTT_TOPIC_PROGRESS, message)
 
     def set_status_light(self, light):
         """ Set the status light """

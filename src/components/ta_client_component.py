@@ -41,7 +41,7 @@ class TaClientComponent:
             self._logger.error(
                 'Could not decode JSON from message {}'.format(msg.payload))
             return
-        
+
         # Handle the different topics
         if topic == MQTT_TOPIC_REQUEST_HELP:
             # Handle the request for help
@@ -55,7 +55,6 @@ class TaClientComponent:
         elif topic == MQTT_TOPIC_PROGRESS:
             # Handle the progress message
             self.handle_group_progress(payload)
-        
 
     def publish_message(self, topic, message):
         payload = json.dumps(message)
@@ -158,9 +157,10 @@ class TaClientComponent:
         # Add a table of groups getting help
         self.app.addTable("groups_getting_help", [
                           ["Group", "Description", "Time", "TA"]], action=self.assign_got_help, actionButton="Mark as got help")
-        
+
         # Add label for group status
-        self.app.addLabel("group_status_label", "Groups present and status:").config(font="Helvetica 15")
+        self.app.addLabel("group_status_label", "Groups present and status:").config(
+            font="Helvetica 15")
         self.app.setLabelSticky("group_status_label", "w")
 
         # Add a table of groups and their status
@@ -182,7 +182,7 @@ class TaClientComponent:
         # Add the data to the table of groups requesting help
         self.app.addTableRow("groups_request_help", [
                              group, description, time])
-        
+
         # Sort the table by time
         self.app.sortTable("groups_request_help", 2)
 
@@ -213,7 +213,7 @@ class TaClientComponent:
 
         # Log the action
         self._logger.info(f"Group {data[0]} got help")
-    
+
     def handle_group_present(self, payload):
         # Get the data from the payload
         group = payload[0]['group']
@@ -232,11 +232,11 @@ class TaClientComponent:
             if self.app.getTableRow("group_status", row)[0] == group:
                 delete_row = row
                 break
-        
+
         if delete_row is None:
             self._logger.error(f"Group {group} not found in table")
             return
-        
+
         # Remove the row from the table of groups and their status
         self.app.deleteTableRow("group_status", delete_row)
 
@@ -252,14 +252,14 @@ class TaClientComponent:
             if self.app.getTableRow("group_status", row)[0] == group:
                 update_row = row
                 break
-        
+
         if update_row is None:
             self._logger.error(f"Group {group} not found in table")
             return
-        
+
         # Remove the row from the table of groups and their status
         self.app.deleteTableRow("group_status", update_row)
-        
+
         # Update the row in the table of groups and their status
         self.app.addTableRow("group_status", [group, task])
 
