@@ -17,6 +17,7 @@ MQTT_TOPIC_INPUT = 'ttm4115/project/team10/input'
 MQTT_TOPIC_TASKS = 'ttm4115/project/team10/tasks'
 MQTT_TOPIC_OUTPUT = 'ttm4115/project/team10/output'
 
+
 class TaClientComponent:
     def on_connect(self, client, userdata, flags, rc):
         # Only log that we are connected if the connection was successful
@@ -25,6 +26,12 @@ class TaClientComponent:
     def on_message(self, client, userdata, msg):
         # Log the message received
         self._logger.debug('MQTT received message: {}'.format(msg.payload))
+
+    def publish_message(self, topic, message):
+        payload = json.dumps(message)
+        self._logger.debug(
+            'Publishing message to topic {}: {}'.format(topic, payload))
+        self.mqtt_client.publish(topic, payload, qos=2)
 
     def __init__(self):
         # get the logger object for the component
@@ -71,7 +78,7 @@ class TaClientComponent:
         self.app = gui()
 
         # Set the size of the GUI window and primary elements
-        self.app.setSize(800, 600)  # Set the size of the GUI window
+        self.app.setSize(800, 800)  # Set the size of the GUI window
         self.app.setTitle("TA client")  # Set the title of the GUI window
         # Set the label in the upper right corner
         self.app.addLabel("upper_right_label_date",
@@ -82,16 +89,36 @@ class TaClientComponent:
 
         self.app.addLabel("title", "Welcome to the lab").config(
             font="Helvetica 25")
-        
+
         self.app.addLabel("subtitle", "Add tasks for the lab session:").config(
             font="Helvetica 15")
         self.app.setLabelSticky("subtitle", "w")
+
+        self.app.addButton("Show Instructions", self.show_instructions)
+        self.app.setButtonSticky("Show Instructions", "w")
+
         # Set up a table to contain the tasks
-        self.app.addTable("assigned_tasks", [["Description", "Duration"]], addRow=self.add_task, addButton='Add task')
+        self.app.addTable("assigned_tasks", [
+                          ["Description", "Duration"]], addRow=self.add_task, addButton='Add task')
 
         # Add a button to submit the tasks
         self.app.addButton("Submit tasks", self.submit_tasks)
         self.app.setButtonSticky("Submit tasks", "w")
+
+        # Label for the table of groups requesting help
+        self.app.addLabel("groups_request_label", "Groups requesting help:").config(font="Helvetica 15")
+        self.app.setLabelSticky("groups_request_label", "w")
+        # Add a table of groups requesting help
+        self.app.addTable("groups", [
+                          ["Group", "Description", "Time"]], action=self.assign_getting_help, actionButton="Mark as getting help")
+        
+        # Label for the table of groups getting help
+        self.app.addLabel("groups_getting_help_label", "Groups getting help:").config(font="Helvetica 15")
+        self.app.setLabelSticky("groups_getting_help_label", "w")
+
+        # Add a table of groups getting help
+        self.app.addTable("groups_getting_help", [
+                          ["Group", "Description", "Time"]], action=self.assign_got_help, actionButton="Mark as got help")
 
         self.init_popup()
 
@@ -100,12 +127,26 @@ class TaClientComponent:
         # Start the GUI
         self.app.go()
 
+    def assign_getting_help(self, row):
+        pass
+
+    def assign_got_help(self, row):
+        pass
+
+    def show_instructions(self):
+        self.app.infoBox(title="Instructions",
+                         message="Assign tasks to the students by filling in the description and duration of the task. \
+                            The duration must be a number. \
+                                When you are done, press the submit button to publish the tasks to the MQTT broker. \
+                                    The tasks will be enumberated from 1 to n, where n is the number of tasks.")
+
     def add_task(self):
         data_list = self.app.getTableEntries("assigned_tasks")
 
         # Test if the description or duration is empty
         if data_list[0] == "" or data_list[1] == "":
-            self.app.popUp("Error", "Description and duration must be filled", kind="error")
+            self.app.popUp(
+                "Error", "Description and duration must be filled", kind="error")
             return
 
         # Test if the duration is a number
@@ -134,12 +175,8 @@ class TaClientComponent:
             }
             output_list.append(task_dict)
 
-        # Convert into json
-        json_data = json.dumps(output_list)
-        
         # Publish the tasks to the MQTT broker
-        self.mqtt_client.publish(MQTT_TOPIC_TASKS, json_data)
-
+        self.publish_message(MQTT_TOPIC_TASKS, output_list)
 
     def stop(self):
         """
@@ -166,7 +203,7 @@ class TaClientComponent:
         self.app.stopSubWindow()
 
         self.app.showSubWindow("Enter TA name")
-    
+
     def submit_name(self):
         name = self.app.getEntry("Your name:")
         self.app.hideSubWindow("Enter TA name")
@@ -180,4 +217,3 @@ class TaClientComponent:
         self.app.popUp("Info", "Application will stop", kind="info")
         self._logger.info('Application will stop')
         self.app.stop()
-
