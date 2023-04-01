@@ -19,6 +19,7 @@ MQTT_TOPIC_OUTPUT = 'ttm4115/project/team10/output'
 MQTT_TOPIC_REQUEST_HELP = 'ttm4115/project/team10/request'
 MQTT_TOPIC_GROUP_PRESENT = 'ttm4115/project/team10/present'
 MQTT_TOPIC_GROUP_DONE = 'ttm4115/project/team10/done'
+MQTT_TOPIC_PROGRESS = 'ttm4115/project/team10/progress'
 
 
 class TaClientComponent:
@@ -51,6 +52,9 @@ class TaClientComponent:
         elif topic == MQTT_TOPIC_GROUP_DONE:
             # Handle the group done message
             self.handle_group_done(payload)
+        elif topic == MQTT_TOPIC_PROGRESS:
+            # Handle the progress message
+            self.handle_group_progress(payload)
         
 
     def publish_message(self, topic, message):
@@ -80,6 +84,7 @@ class TaClientComponent:
         self.mqtt_client.subscribe(MQTT_TOPIC_REQUEST_HELP)
         self.mqtt_client.subscribe(MQTT_TOPIC_GROUP_PRESENT)
         self.mqtt_client.subscribe(MQTT_TOPIC_GROUP_DONE)
+        self.mqtt_client.subscribe(MQTT_TOPIC_PROGRESS)
 
         # Start the MQTT client in a separate thread to avoid blocking
         try:
@@ -234,6 +239,29 @@ class TaClientComponent:
         
         # Remove the row from the table of groups and their status
         self.app.deleteTableRow("group_status", delete_row)
+
+    def handle_group_progress(self, payload):
+        # Get the data from the payload
+        group = payload[0]['group']
+        task = payload[0]['current_task']
+        task = f"Task {task} in progress"
+        update_row = None
+
+        # Find the row of the group in the table
+        for row in range(self.app.getTableRowCount("group_status")):
+            if self.app.getTableRow("group_status", row)[0] == group:
+                update_row = row
+                break
+        
+        if update_row is None:
+            self._logger.error(f"Group {group} not found in table")
+            return
+        
+        # Remove the row from the table of groups and their status
+        self.app.deleteTableRow("group_status", update_row)
+        
+        # Update the row in the table of groups and their status
+        self.app.addTableRow("group_status", [group, task])
 
     def show_instructions(self):
         self.app.infoBox(title="Instructions",

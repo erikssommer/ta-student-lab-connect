@@ -137,7 +137,7 @@ class GroupClientComponent:
 
         # Add image of school logo
         self.app.addImage("logo", "../assets/ntnu_logo.png")
-        
+
         self.app.addLabel("title", "Welcome to the lab").config(
             font="Helvetica 25")
         self.app.addLabel("subtitle", "Tasks for this lab session:").config(
@@ -312,8 +312,8 @@ class GroupClientComponent:
                     self.app.replaceTableRow("table_tasks", row + 1, data)
 
                 # Report the task as done to the TAs
-                self.publish_message(
-                    MQTT_TOPIC_PROGRESS + "/" + self.team_text, f"Task {row + 1} is done")
+                message = [{"group": self.team_text, "current_task": data[0]}]
+                self.publish_message(MQTT_TOPIC_PROGRESS, message)
                 break
 
         # TODO: Update the status light state machine
