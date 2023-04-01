@@ -138,7 +138,7 @@ class TaClientComponent:
 
         # Add a table of groups getting help
         self.app.addTable("groups_getting_help", [
-                          ["Group", "Description", "Time"]], action=self.assign_got_help, actionButton="Mark as got help")
+                          ["Group", "Description", "Time", "TA"]], action=self.assign_got_help, actionButton="Mark as got help")
 
         self.init_popup()
 
@@ -148,8 +148,6 @@ class TaClientComponent:
         self.app.go()
 
     def handle_request_help(self, payload):
-        
-        print(payload)
         # Get the data from the payload
         group = payload[0]['group']
         description = payload[0]['description']
@@ -166,6 +164,10 @@ class TaClientComponent:
     def assign_getting_help(self, row):
         # Get the row of the table
         data = self.app.getTableRow("groups_request_help", row)
+
+        # Add the TA name to the data
+        data.append(self.ta_name)
+
         # Add the row to the table of groups getting help
         self.app.addTableRow("groups_getting_help", data)
         # Remove the row from the table of groups requesting help
@@ -257,6 +259,9 @@ class TaClientComponent:
     def submit_name(self):
         name = self.app.getEntry("Your name:")
         self.app.hideSubWindow("Enter TA name")
+
+        # Set the name of the TA
+        self.ta_name = name
 
         # Set the label in the upper right corner
         self.app.setLabel("upper_right_label", f"TA name: {name}")
