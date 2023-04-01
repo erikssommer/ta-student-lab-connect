@@ -134,6 +134,10 @@ class GroupClientComponent:
         self.app.addLabel("upper_right_label", "Team Number")
         self.app.setLabelSticky("upper_right_label", "ne")
         self.app.setLabelSticky("upper_right_label_date", "ne")
+
+        # Add image of school logo
+        self.app.addImage("logo", "../assets/ntnu_logo.png")
+        
         self.app.addLabel("title", "Welcome to the lab").config(
             font="Helvetica 25")
         self.app.addLabel("subtitle", "Tasks for this lab session:").config(
