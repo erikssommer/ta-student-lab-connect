@@ -68,6 +68,9 @@ class GroupClientComponent:
             message = [{"group": self.team_text, "current_task": "1"}]
             self.report_current_task(message)
 
+            # Cange state to "working on task"
+            self.group_stm_driver.send('task_start', self.team_text)
+
             self.create_status_light_stm(durations=duration_list)
 
         if topic == MQTT_TOPIC_QUEUE_NUMBER:
@@ -322,6 +325,9 @@ class GroupClientComponent:
             self.publish_message(MQTT_TOPIC_REQUEST_HELP, output_list)
             self.app.setLabel("Request feedback", "Request successfully sent!")
             self.app.setLabelFg("Request feedback", "green")
+
+            # Change state to "waiting_for_help"
+            self.group_stm_driver.send("request_help", self.team_text)
 
         except Exception as e:
             self.app.popUp("Error", e, kind="error")
