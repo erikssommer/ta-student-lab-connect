@@ -63,11 +63,7 @@ class GroupClientComponent:
             message = [{"group": self.team_text, "current_task": "1"}]
             self.report_current_task(message)
 
-            # Create a new status light state machine
-            status_light_stm = StatusLight.create_machine(
-                team=self.team_text, component=self)
-            # Add the state machine to the driver
-            self.light_stm_driver.add_machine(status_light_stm)
+            self.create_status_light_stm(duration=payload[0]['duration'])
 
     def publish_message(self, topic, message):
         payload = json.dumps(message)
@@ -336,7 +332,7 @@ class GroupClientComponent:
 
         # TODO: Update the status light state machine
         if duration is not None:
-            self.light_stm_driver.send('t', self.team_text)
+            self.create_status_light_stm(duration)
 
         # Check if all tasks are done
         if self.app.getTableRow("table_tasks", self.app.getTableRowCount("table_tasks") - 1)[3] == "Done":
@@ -351,6 +347,13 @@ class GroupClientComponent:
 
     def report_current_task(self, message):
         self.publish_message(MQTT_TOPIC_PROGRESS, message)
+
+    def create_status_light_stm(self, duration):
+        """ Create a new status light state machine """
+        # Create a new status light state machine
+        status_light_stm = StatusLight.create_machine(team=self.team_text, duration=duration, component=self, logger=self._logger)
+        # Add the state machine to the driver
+        self.light_stm_driver.add_machine(status_light_stm)
 
     def set_status_light(self, light):
         """ Set the status light """
