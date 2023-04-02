@@ -17,30 +17,30 @@ class GroupLogic:
         """ Create the state machine for a group client """
         group_logic = GroupLogic(name=team, stage=stage, component=component)
 
-        # TODO: Define the states
-        states = [
-            {'name': 'INIT', 'entry': 'init'},
-            {'name': 'WAITING', 'entry': 'waiting'},
-            {'name': 'WORKING', 'entry': 'working'},
-            {'name': 'DONE', 'entry': 'done'},
-            {'name': 'FINISHED', 'entry': 'finished'},
-        ]
+        # Define the transitions
+        init = {'source': 'initial', 'target': 'not_working_on_task'}
 
-        # TODO: Define the transitions
-        transitions = [
-            {'source': 'INIT', 'target': 'WAITING'},
-            {'source': 'WAITING', 'target': 'WORKING'},
-            {'source': 'WORKING', 'target': 'DONE'},
-            {'source': 'DONE', 'target': 'FINISHED'},
-            {'source': 'FINISHED', 'target': 'INIT'},
-        ]
+        # Define the transitions where the task is started
+        task_start1 = {'trigger': 'task_start', 'source': 'not_working_on_task', 'target': 'working_on_task'}
+        task_start2 = {'trigger': 'task_start', 'source': 'working_on_task', 'target': 'working_on_task'}
+
+        # Define the transitions where group is waiting for help
+        waiting_for_help1 = {'trigger': 'request_help', 'source': 'working_on_task', 'target': 'waiting_for_help'}
+
+        # Define the transitions where group is receiving help
+        receiving_help1 = {'trigger': 'receive_help', 'source': 'waiting_for_help', 'target': 'receiving_help'}
+
+        # Define the transitions where group has recieved help and is working on next task
+        received_help1 = {'trigger': 'received_help', 'source': 'receiving_help', 'target': 'working_on_task'}
+
+        # Define the transitions where all the tasks is finished
+        tasks_done1 = {'trigger': 'tasks_done', 'source': 'working_on_task', 'target': 'finished'}
 
         # Define the state machine
         group_stm = stmpy.Machine(
             name=team,
-            transitions=transitions,
+            transitions=[init, task_start1, task_start2, waiting_for_help1, receiving_help1, received_help1, tasks_done1],
             obj=group_stm,
-            states=states,
         )
 
         group_logic.stm = group_stm
