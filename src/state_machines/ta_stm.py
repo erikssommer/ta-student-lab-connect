@@ -8,8 +8,8 @@ class TaLogic:
         self.name = name
         self.component = component
     
-    def create_machine(self, team, component, logger):
-        ta_logic = TaLogic(name=team, component=component, logger=logger)
+    def create_machine(ta, component, logger):
+        ta_logic = TaLogic(name=ta, component=component, logger=logger)
 
         # Define the transitions
         init = {'source': 'initial', 'target': 'not_helping_group'}
@@ -23,7 +23,7 @@ class TaLogic:
 
         # Define the state machine
         ta_stm = stmpy.Machine(
-            name=team,
+            name=ta,
             transitions=[init, helping_group1, helping_group2, not_helping_group1],
             obj=ta_logic,
         )
@@ -32,5 +32,5 @@ class TaLogic:
 
         return ta_stm
     
-    
+
     
