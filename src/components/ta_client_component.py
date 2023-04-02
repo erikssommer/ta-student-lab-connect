@@ -5,6 +5,7 @@ from appJar import gui
 from datetime import datetime
 import json
 import logging
+from state_machines.ta_stm import TaLogic
 
 # TA client component
 
@@ -26,6 +27,8 @@ MQTT_TOPIC_RECEIVED_HELP = 'ttm4115/project/team10/received_help'
 
 
 class TaClientComponent:
+
+    # MQTT communication methods
     def on_connect(self, client, userdata, flags, rc):
         # Only log that we are connected if the connection was successful
         self._logger.debug('MQTT connected to {}'.format(client))
@@ -64,6 +67,14 @@ class TaClientComponent:
         self._logger.debug(
             'Publishing message to topic {}: {}'.format(topic, payload))
         self.mqtt_client.publish(topic, payload, qos=2)
+
+    # State machine methods
+    def create_ta_stm(self):
+        """ Create a new ta state machine """
+        # Create a new group state machine
+        ta_stm = TaLogic.create_machine(ta=self.ta_name, component=self, logger=self._logger)
+        # Add the state machine to the driver
+        self.ta_stm_driver.add_machine(ta_stm)
 
     def __init__(self, logger):
         # get the logger object for the component
@@ -245,6 +256,9 @@ class TaClientComponent:
 
         # Report to group that it is getting help
         self.report_getting_help(data[0])
+
+        # Change state to "helping_group"
+        self.ta_stm_driver.send('help_group', self.ta_name)
     
     def report_getting_help(self, group):
         # Wrap the group name in a list
@@ -271,6 +285,9 @@ class TaClientComponent:
 
         # Report to group that it got help
         self.report_received_help(data[0])
+
+        # Change state to "not_helping_group"
+        self.ta_stm_driver.send('help_recieved', self.ta_name)
 
     def handle_group_present(self, payload):
         # Get the data from the payload
@@ -413,6 +430,9 @@ class TaClientComponent:
 
         # Set the label in the upper right corner
         self.app.setLabel("upper_right_label", f"TA name: {name}")
+        
+        # Create the ta state machine
+        self.create_ta_stm()
 
     def sub_window_closed(self):
         """ Close the application if the popup window is closed """
