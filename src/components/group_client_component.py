@@ -47,7 +47,8 @@ class GroupClientComponent:
         # Handle the different topics
         if topic == MQTT_TOPIC_TASKS:
             self.app.setLabel("listbox_tasks_label", "")
-
+            # Keep track of the task durations for the status light stm
+            duration_list = []
             # Populate the listbox with tasks
             for i, task in enumerate(payload):
                 # set the status for the first row to "in progress"
@@ -57,13 +58,14 @@ class GroupClientComponent:
                     status = "Not done"
                 self.app.addTableRow(
                     "table_tasks", [task['task'], task['description'], task['duration'], status])
+                duration_list.append(task['duration'])
 
             # Set the status of the first task to "in progress"
             # Report the task as done to the TAs
             message = [{"group": self.team_text, "current_task": "1"}]
             self.report_current_task(message)
 
-            self.create_status_light_stm(duration=payload[0]['duration'])
+            self.create_status_light_stm(durations=duration_list)
 
     def publish_message(self, topic, message):
         payload = json.dumps(message)
@@ -330,9 +332,9 @@ class GroupClientComponent:
                 self.report_current_task(message)
                 break
 
-        # TODO: Update the status light state machine
+        # Report to the light stm that the task is done
         if duration is not None:
-            self.create_status_light_stm(duration)
+            self.light_stm_driver.send('task_start', self.team_text)
 
         # Check if all tasks are done
         if self.app.getTableRow("table_tasks", self.app.getTableRowCount("table_tasks") - 1)[3] == "Done":
@@ -348,10 +350,10 @@ class GroupClientComponent:
     def report_current_task(self, message):
         self.publish_message(MQTT_TOPIC_PROGRESS, message)
 
-    def create_status_light_stm(self, duration):
+    def create_status_light_stm(self, durations: list[str]):
         """ Create a new status light state machine """
         # Create a new status light state machine
-        status_light_stm = StatusLight.create_machine(team=self.team_text, duration=duration, component=self, logger=self._logger)
+        status_light_stm = StatusLight.create_machine(team=self.team_text, durations=durations, component=self, logger=self._logger)
         # Add the state machine to the driver
         self.light_stm_driver.add_machine(status_light_stm)
 
