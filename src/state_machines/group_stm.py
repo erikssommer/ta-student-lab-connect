@@ -6,16 +6,15 @@ MQTT_TOPIC_INPUT = 'input'
 
 class GroupLogic:
     """ State machine for a group client """
-    def __init__(self, name, stage, component):
-        self._logger = logging.getLogger(__name__)
+    def __init__(self, name, component, logger):
+        self._logger: logging.Logger = logger
         self.name = name
-        self.stage = stage
         self.component = component
 
 
-    def create_machine(team, stage, component):
+    def create_machine(team, component, logger):
         """ Create the state machine for a group client """
-        group_logic = GroupLogic(name=team, stage=stage, component=component)
+        group_logic = GroupLogic(name=team, component=component, logger=logger)
 
         # Define the transitions
         init = {'source': 'initial', 'target': 'not_working_on_task'}
@@ -34,13 +33,13 @@ class GroupLogic:
         received_help1 = {'trigger': 'received_help', 'source': 'receiving_help', 'target': 'working_on_task'}
 
         # Define the transitions where all the tasks is finished
-        tasks_done1 = {'trigger': 'tasks_done', 'source': 'working_on_task', 'target': 'finished'}
+        tasks_done1 = {'trigger': 'tasks_done', 'source': 'working_on_task', 'target': 'finished', 'effect': 'finished()'}
 
         # Define the state machine
         group_stm = stmpy.Machine(
             name=team,
             transitions=[init, task_start1, task_start2, waiting_for_help1, receiving_help1, received_help1, tasks_done1],
-            obj=group_stm,
+            obj=group_logic,
         )
 
         group_logic.stm = group_stm
@@ -53,7 +52,7 @@ class GroupLogic:
 
     def finished(self):
         self._logger.info('Group {} finished'.format(self.name))
-        self.stm.stop()
+        self.stm.terminate()
 
     def report_status(self, status):
         self._logger.info('Group {} reported status {}'.format(self.name, status))

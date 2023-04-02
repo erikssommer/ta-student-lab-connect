@@ -6,6 +6,7 @@ import json
 import stmpy
 from threading import Thread
 from state_machines.status_light_stm import StatusLight
+from state_machines.group_stm import GroupLogic
 import logging
 
 NR_OF_TEAMS = 20
@@ -26,6 +27,7 @@ MQTT_TOPIC_QUEUE_NUMBER = 'ttm4115/project/team10/queue_number'
 
 class GroupClientComponent:
 
+    # MQTT connection logic
     def on_connect(self, client, userdata, flags, rc):
         # Only log that we are connected if the connection was successful
         self._logger.debug('MQTT connected to {}'.format(client))
@@ -80,6 +82,25 @@ class GroupClientComponent:
     def retrieve_message(self):
         self.mqtt_client.subscribe(MQTT_TOPIC_OUTPUT)
         self.mqtt_client.on_message = self.on_message
+
+    # Creation on state machines logic
+    def create_status_light_stm(self, durations: list[str]):
+        """ Create a new status light state machine """
+        # Create a new status light state machine
+        status_light_stm = StatusLight.create_machine(team=self.team_text, durations=durations, component=self, logger=self._logger)
+        # Add the state machine to the driver
+        self.light_stm_driver.add_machine(status_light_stm)
+
+    def create_group_stm(self):
+        """ Create a new group state machine """
+        # Create a new group state machine
+        group_stm = GroupLogic.create_machine(team=self.team_text, component=self, logger=self._logger)
+        # Add the state machine to the driver
+        self.group_stm_driver.add_machine(group_stm)
+
+    def set_status_light(self, light):
+        """ Set the status light """
+        self.app.setImage("light", light)
 
     def __init__(self, logger):
         self.queue_number = 0
@@ -266,6 +287,9 @@ class GroupClientComponent:
                         "current_task": "Waiting for TAs to assign tasks..."}]
         self.publish_message(MQTT_TOPIC_GROUP_PRESENT, data_object)
 
+        # Start the group state machine
+        self.create_group_stm()
+
     def sub_window_closed(self):
         """ Close the application if the popup window is closed """
         # Close the application if the popup window is closed
@@ -355,14 +379,3 @@ class GroupClientComponent:
 
     def report_current_task(self, message):
         self.publish_message(MQTT_TOPIC_PROGRESS, message)
-
-    def create_status_light_stm(self, durations: list[str]):
-        """ Create a new status light state machine """
-        # Create a new status light state machine
-        status_light_stm = StatusLight.create_machine(team=self.team_text, durations=durations, component=self, logger=self._logger)
-        # Add the state machine to the driver
-        self.light_stm_driver.add_machine(status_light_stm)
-
-    def set_status_light(self, light):
-        """ Set the status light """
-        self.app.setImage("light", light)
