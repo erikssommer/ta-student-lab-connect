@@ -104,6 +104,8 @@ class TaClientComponent:
 
         self._logger.debug('Component initialization finished')
 
+        self.submitted_tasks = False
+
         # Settup the GUI
         self.setup_gui()
 
@@ -303,6 +305,12 @@ class TaClientComponent:
         self.app.addTableRow("assigned_tasks", data_list)
 
     def submit_tasks(self):
+        # Test if the tasks have already been submitted
+        if self.submitted_tasks:
+            self.app.popUp(
+                "Error", "The tasks have already been submitted. Can only submitt tasks once", kind="error")
+            return
+
         # Test if there are any tasks
         if self.app.getTableRowCount("assigned_tasks") == 0:
             self.app.popUp("Error", "There are no tasks to submit", kind="error")
@@ -326,6 +334,7 @@ class TaClientComponent:
 
         # Publish the tasks to the MQTT broker
         self.publish_message(MQTT_TOPIC_TASKS, output_list)
+        self.submitted_tasks = True
 
     def stop(self):
         """
