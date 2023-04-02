@@ -23,6 +23,8 @@ MQTT_TOPIC_PROGRESS = 'ttm4115/project/team10/progress'
 MQTT_TOPIC_GROUP_PRESENT = 'ttm4115/project/team10/present'
 MQTT_TOPIC_GROUP_DONE = 'ttm4115/project/team10/done'
 MQTT_TOPIC_QUEUE_NUMBER = 'ttm4115/project/team10/queue_number'
+MQTT_TOPIC_GETTING_HELP = 'ttm4115/project/team10/getting_help'
+MQTT_TOPIC_RECEIVED_HELP = 'ttm4115/project/team10/received_help'
 
 
 class GroupClientComponent:
@@ -77,6 +79,18 @@ class GroupClientComponent:
             self.queue_number = payload[0]['queue_number']
             self.app.setLabel("queue_number_label", f"Number in queue: {self.queue_number}")
 
+        if topic == MQTT_TOPIC_GETTING_HELP:
+            # Update the queue number label to inform the user that they are getting help
+            self.app.setLabel("queue_number_label", "Getting help!")
+            # Change state to "receive_help"
+            self.group_stm_driver.send('receive_help', self.team_text)
+
+        if topic == MQTT_TOPIC_RECEIVED_HELP:
+            # Update the queue number label to inform the user that they have received help
+            self.app.setLabel("queue_number_label", "Received help!")
+            # Change state to "receive_help"
+            self.group_stm_driver.send('received_help', self.team_text)
+
     def publish_message(self, topic, message):
         payload = json.dumps(message)
         self._logger.info('Publishing message: {}'.format(payload))
@@ -120,13 +134,17 @@ class GroupClientComponent:
         # callback methods
         self.mqtt_client.on_connect = self.on_connect
         self.mqtt_client.on_message = self.on_message
+
         # Connect to the broker
         self.mqtt_client.connect(MQTT_BROKER, MQTT_PORT)
-        # Subscribe to the input topic
+
+        # Subscribe to the input topics
         self.mqtt_client.subscribe(MQTT_TOPIC_REQUEST_HELP)
         self.mqtt_client.subscribe(MQTT_TOPIC_TASKS)
         self.mqtt_client.subscribe(MQTT_TOPIC_GROUP_PRESENT)
         self.mqtt_client.subscribe(MQTT_TOPIC_QUEUE_NUMBER)
+        self.mqtt_client.subscribe(MQTT_TOPIC_GETTING_HELP)
+        self.mqtt_client.subscribe(MQTT_TOPIC_RECEIVED_HELP)
 
         # Start the MQTT client in a separate thread to avoid blocking
         try:
@@ -382,6 +400,9 @@ class GroupClientComponent:
             # Report the task as done to the TAs
             message = [{"group": self.team_text}]
             self.publish_message(MQTT_TOPIC_GROUP_DONE, message)
+
+            # Change state to "tasks_done"
+            self.group_stm_driver.send("tasks_done", self.team_text)
 
     def report_current_task(self, message):
         self.publish_message(MQTT_TOPIC_PROGRESS, message)

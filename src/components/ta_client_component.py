@@ -21,6 +21,8 @@ MQTT_TOPIC_GROUP_PRESENT = 'ttm4115/project/team10/present'
 MQTT_TOPIC_GROUP_DONE = 'ttm4115/project/team10/done'
 MQTT_TOPIC_PROGRESS = 'ttm4115/project/team10/progress'
 MQTT_TOPIC_QUEUE_NUMBER = 'ttm4115/project/team10/queue_number'
+MQTT_TOPIC_GETTING_HELP = 'ttm4115/project/team10/getting_help'
+MQTT_TOPIC_RECEIVED_HELP = 'ttm4115/project/team10/received_help'
 
 
 class TaClientComponent:
@@ -241,6 +243,23 @@ class TaClientComponent:
         # Log the action
         self._logger.info(f"Group {data[0]} is getting help")
 
+        # Report to group that it is getting help
+        self.report_getting_help(data[0])
+    
+    def report_getting_help(self, group):
+        # Wrap the group name in a list
+        message = [{"group": group}]
+
+        # Send the group name to the group
+        self.publish_message(MQTT_TOPIC_GETTING_HELP, message)
+
+    def report_received_help(self, group):
+        # Wrap the group name in a list
+        message = [{"group": group}]
+
+        # Send the group name to the group
+        self.publish_message(MQTT_TOPIC_RECEIVED_HELP, message)
+
     def assign_got_help(self, row):
         # Get the row of the table
         data = self.app.getTableRow("groups_getting_help", row)
@@ -249,6 +268,9 @@ class TaClientComponent:
 
         # Log the action
         self._logger.info(f"Group {data[0]} got help")
+
+        # Report to group that it got help
+        self.report_received_help(data[0])
 
     def handle_group_present(self, payload):
         # Get the data from the payload

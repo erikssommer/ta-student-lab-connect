@@ -25,6 +25,7 @@ class GroupLogic:
 
         # Define the transitions where group is waiting for help
         waiting_for_help1 = {'trigger': 'request_help', 'source': 'working_on_task', 'target': 'waiting_for_help'}
+        waiting_for_help2 = {'trigger': 'request_help', 'source': 'not_working_on_task', 'target': 'waiting_for_help'}
 
         # Define the transitions where group is receiving help
         receiving_help1 = {'trigger': 'receive_help', 'source': 'waiting_for_help', 'target': 'receiving_help'}
@@ -38,7 +39,7 @@ class GroupLogic:
         # Define the state machine
         group_stm = stmpy.Machine(
             name=team,
-            transitions=[init, task_start1, task_start2, waiting_for_help1, receiving_help1, received_help1, tasks_done1],
+            transitions=[init, task_start1, task_start2, waiting_for_help1, waiting_for_help2, receiving_help1, received_help1, tasks_done1],
             obj=group_logic,
         )
 
