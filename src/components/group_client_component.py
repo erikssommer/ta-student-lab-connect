@@ -21,6 +21,7 @@ MQTT_TOPIC_OUTPUT = 'ttm4115/project/team10/response'
 MQTT_TOPIC_PROGRESS = 'ttm4115/project/team10/progress'
 MQTT_TOPIC_GROUP_PRESENT = 'ttm4115/project/team10/present'
 MQTT_TOPIC_GROUP_DONE = 'ttm4115/project/team10/done'
+MQTT_TOPIC_QUEUE_NUMBER = 'ttm4115/project/team10/queue_number'
 
 
 class GroupClientComponent:
@@ -67,6 +68,10 @@ class GroupClientComponent:
 
             self.create_status_light_stm(durations=duration_list)
 
+        if topic == MQTT_TOPIC_QUEUE_NUMBER:
+            self.queue_number = payload[0]['queue_number']
+            self.app.setLabel("queue_number_label", f"Number in queue: {self.queue_number}")
+
     def publish_message(self, topic, message):
         payload = json.dumps(message)
         self._logger.info('Publishing message: {}'.format(payload))
@@ -97,6 +102,7 @@ class GroupClientComponent:
         self.mqtt_client.subscribe(MQTT_TOPIC_REQUEST_HELP)
         self.mqtt_client.subscribe(MQTT_TOPIC_TASKS)
         self.mqtt_client.subscribe(MQTT_TOPIC_GROUP_PRESENT)
+        self.mqtt_client.subscribe(MQTT_TOPIC_QUEUE_NUMBER)
 
         # Start the MQTT client in a separate thread to avoid blocking
         try:
@@ -184,7 +190,7 @@ class GroupClientComponent:
         self.app.addLabelEntry("Description:").config(font="Helvetica 15")
         self.app.addButton("Request Help", self.on_request_help)
         self.app.addLabel("Request feedback", "")
-        self.app.addLabel("Help Queue", "")
+        self.app.addLabel("queue_number_label", "")
 
         # Add a horizontal separator
         self.app.addHorizontalSeparator(16,0,4,colour="black")

@@ -20,6 +20,7 @@ MQTT_TOPIC_REQUEST_HELP = 'ttm4115/project/team10/request'
 MQTT_TOPIC_GROUP_PRESENT = 'ttm4115/project/team10/present'
 MQTT_TOPIC_GROUP_DONE = 'ttm4115/project/team10/done'
 MQTT_TOPIC_PROGRESS = 'ttm4115/project/team10/progress'
+MQTT_TOPIC_QUEUE_NUMBER = 'ttm4115/project/team10/queue_number'
 
 
 class TaClientComponent:
@@ -190,6 +191,12 @@ class TaClientComponent:
         self.app.go()
 
     def handle_request_help(self, payload):
+        # If group already in table, remove it
+        for row in range(self.app.getTableRowCount("groups_request_help")):
+            if self.app.getTableRow("groups_request_help", row)[0] == payload[0]['group']:
+                self.app.deleteTableRow("groups_request_help", row)
+                break
+
         # Get the data from the payload
         group = payload[0]['group']
         description = payload[0]['description']
@@ -205,6 +212,19 @@ class TaClientComponent:
         # Log the action
         self._logger.info(
             f"Group {group} requested help with {description} at {time}")
+        
+        # Report the queue number to the group
+        self.report_queue_number(group)
+    
+    def report_queue_number(self, group):
+        # Get the number of groups in the queue
+        queue_number = self.app.getTableRowCount("groups_request_help")
+
+        # Wrap it in a list
+        message = [{"queue_number": f"{queue_number + 1}"}]
+
+        # Send the queue number to the group
+        self.publish_message(MQTT_TOPIC_QUEUE_NUMBER, message)
 
     def assign_getting_help(self, row):
         # Get the row of the table
