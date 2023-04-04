@@ -78,7 +78,7 @@ class TaClientComponent:
         # Create a new group state machine
         ta_stm = TaLogic.create_machine(ta=self.ta_name, component=self, logger=self._logger)
         # Add the state machine to the driver
-        self.ta_stm_driver.add_machine(ta_stm)
+        self.stm_driver.add_machine(ta_stm)
 
     def __init__(self, logger):
         # get the logger object for the component
@@ -110,14 +110,9 @@ class TaClientComponent:
             print("Interrupted")
             self.mqtt_client.disconnect()
 
-        # Setting up the drivers for the state machines
-        # Start the stmpy driver for the group component, without any state machines for now
-        self.ta_stm_driver = stmpy.Driver()
-        self.ta_stm_driver.start(keep_active=True)
-
-        # Setting up the drivers for the status light
-        self.light_stm_driver = stmpy.Driver()
-        self.light_stm_driver.start(keep_active=True)
+        # Start the stmpy driver, without any state machines for now
+        self.stm_driver = stmpy.Driver()
+        self.stm_driver.start(keep_active=True)
 
         self._logger.debug('Component initialization finished')
 
@@ -261,7 +256,7 @@ class TaClientComponent:
         self.report_getting_help(data[0])
 
         # Change state to "helping_group"
-        self.ta_stm_driver.send('help_group', self.ta_name)
+        self.stm_driver.send('help_group', self.ta_name)
     
     def report_getting_help(self, group):
         # Wrap the group name in a list
@@ -294,7 +289,7 @@ class TaClientComponent:
         self.report_received_help(data[0])
 
         # Change state to "not_helping_group"
-        self.ta_stm_driver.send('help_recieved', self.ta_name)
+        self.stm_driver.send('help_recieved', self.ta_name)
 
     def handle_group_present(self, header, body):
         # Get the data from the payload
@@ -407,8 +402,7 @@ class TaClientComponent:
         self.mqtt_client.loop_stop()
 
         # stop the stmpy drivers
-        self.ta_stm_driver.stop()
-        self.light_stm_driver.stop()
+        self.stm_driver.stop()
 
         # Log the shutdown
         self._logger.info('Shutting down TA client component')

@@ -106,7 +106,7 @@ class GroupClientComponent:
             self.publish_message(self.MQTT_TOPIC_PROGRESS, payload)
 
             # Cange state to "working on task"
-            self.group_stm_driver.send('task_start', self.team_text)
+            self.stm_driver.send('task_start', self.team_text)
 
             self.create_status_light_stm(durations=duration_list)
 
@@ -119,13 +119,13 @@ class GroupClientComponent:
             # Update the queue number label to inform the user that they are getting help
             self.app.setLabel("queue_number_label", "Getting help!")
             # Change state to "receive_help"
-            self.group_stm_driver.send('receive_help', self.team_text)
+            self.stm_driver.send('receive_help', self.team_text)
 
         if topic == self.MQTT_TOPIC_RECEIVED_HELP:
             # Update the queue number label to inform the user that they have received help
             self.app.setLabel("queue_number_label", "Received help!")
             # Change state to "receive_help"
-            self.group_stm_driver.send('received_help', self.team_text)
+            self.stm_driver.send('received_help', self.team_text)
 
     def publish_message(self, topic, message):
         payload = json.dumps(message)
@@ -144,7 +144,7 @@ class GroupClientComponent:
         status_light_stm = StatusLight.create_machine(
             team=self.team_text, durations=durations, component=self, logger=self._logger)
         # Add the state machine to the driver
-        self.light_stm_driver.add_machine(status_light_stm)
+        self.stm_driver.add_machine(status_light_stm)
 
     def create_group_stm(self):
         """ Create a new group state machine """
@@ -152,7 +152,7 @@ class GroupClientComponent:
         group_stm = GroupLogic.create_machine(
             team=self.team_text, component=self, logger=self._logger)
         # Add the state machine to the driver
-        self.group_stm_driver.add_machine(group_stm)
+        self.stm_driver.add_machine(group_stm)
 
     def set_status_light(self, light):
         """ Set the status light """
@@ -187,12 +187,8 @@ class GroupClientComponent:
 
         # Setting up the drivers for the state machines
         # Start the stmpy driver for the group component, without any state machines for now
-        self.group_stm_driver = stmpy.Driver()
-        self.group_stm_driver.start(keep_active=True)
-
-        # Setting up the drivers for the status light
-        self.light_stm_driver = stmpy.Driver()
-        self.light_stm_driver.start(keep_active=True)
+        self.stm_driver = stmpy.Driver()
+        self.stm_driver.start(keep_active=True)
 
         self._logger.debug('Component initialization finished')
 
@@ -288,8 +284,7 @@ class GroupClientComponent:
         self.mqtt_client.loop_stop()
 
         # stop the stmpy drivers
-        self.group_stm_driver.stop()
-        self.light_stm_driver.stop()
+        self.stm_driver.stop()
 
         # Log the shutdown
         self._logger.info('Shutting down Component')
@@ -397,7 +392,7 @@ class GroupClientComponent:
             self.app.setLabelFg("Request feedback", "green")
 
             # Change state to "waiting_for_help"
-            self.group_stm_driver.send("request_help", self.team_text)
+            self.stm_driver.send("request_help", self.team_text)
 
         except Exception as e:
             self.app.popUp("Error", e, kind="error")
@@ -444,14 +439,14 @@ class GroupClientComponent:
 
         # Report to the light stm that the task is done
         if duration is not None:
-            self.light_stm_driver.send('task_start', self.team_text)
+            self.stm_driver.send('task_start', self.team_text)
 
         # Check if all tasks are done
         if self.app.getTableRow("table_tasks", self.app.getTableRowCount("table_tasks") - 1)[3] == "Done":
             self.app.popUp("Info", "All tasks are done", kind="info")
             self.app.setLabel("all_tasks_done_label",
                               "All tasks are done! Good job!")
-            self.light_stm_driver.send('tasks_done', self.team_text)
+            self.stm_driver.send('tasks_done', self.team_text)
 
             # Report the task as done to the TAs
             body = [{"group": self.team_text}]
@@ -462,4 +457,4 @@ class GroupClientComponent:
             self.publish_message(self.MQTT_TOPIC_GROUP_DONE, payload)
 
             # Change state to "tasks_done"
-            self.group_stm_driver.send("tasks_done", self.team_text)
+            self.stm_driver.send("tasks_done", self.team_text)
