@@ -36,14 +36,14 @@ class GroupClientComponent:
         self._logger.debug('Setting topics')
         self.MQTT_TOPIC_TASKS = MQTT_TOPIC_TASKS
 
-        self.MQTT_TOPIC_REQUEST_HELP = MQTT_TOPIC_REQUEST_HELP + "/" + self.team_mqtt_id
-        self.MQTT_TOPIC_GROUP_PRESENT = MQTT_TOPIC_GROUP_PRESENT + "/" + self.team_mqtt_id
-        self.MQTT_TOPIC_GROUP_DONE = MQTT_TOPIC_GROUP_DONE + "/" + self.team_mqtt_id
-        self.MQTT_TOPIC_PROGRESS = MQTT_TOPIC_PROGRESS + "/" + self.team_mqtt_id
+        self.MQTT_TOPIC_REQUEST_HELP = MQTT_TOPIC_REQUEST_HELP + "/" + self.team_mqtt_endpoint
+        self.MQTT_TOPIC_GROUP_PRESENT = MQTT_TOPIC_GROUP_PRESENT + "/" + self.team_mqtt_endpoint
+        self.MQTT_TOPIC_GROUP_DONE = MQTT_TOPIC_GROUP_DONE + "/" + self.team_mqtt_endpoint
+        self.MQTT_TOPIC_PROGRESS = MQTT_TOPIC_PROGRESS + "/" + self.team_mqtt_endpoint
 
-        self.MQTT_TOPIC_QUEUE_NUMBER = MQTT_TOPIC_QUEUE_NUMBER + "/" + self.team_mqtt_id
-        self.MQTT_TOPIC_GETTING_HELP = MQTT_TOPIC_GETTING_HELP + "/" + self.team_mqtt_id
-        self.MQTT_TOPIC_RECEIVED_HELP = MQTT_TOPIC_RECEIVED_HELP + "/" + self.team_mqtt_id
+        self.MQTT_TOPIC_QUEUE_NUMBER = MQTT_TOPIC_QUEUE_NUMBER + "/" + self.team_mqtt_endpoint
+        self.MQTT_TOPIC_GETTING_HELP = MQTT_TOPIC_GETTING_HELP + "/" + self.team_mqtt_endpoint
+        self.MQTT_TOPIC_RECEIVED_HELP = MQTT_TOPIC_RECEIVED_HELP + "/" + self.team_mqtt_endpoint
 
     def subscribe_topics(self):
         """ Subscribe to the topics for the group client component """
@@ -101,7 +101,7 @@ class GroupClientComponent:
             body = [{"group": self.team_text, "current_task": "1"}]
 
             payload = self.create_payload(
-                command="report_current_task", header=self.team_mqtt_id, body=body)
+                command="report_current_task", header=self.team_mqtt_endpoint, body=body)
 
             self.publish_message(self.MQTT_TOPIC_PROGRESS, payload)
 
@@ -324,7 +324,7 @@ class GroupClientComponent:
         self.team_text = message
 
         # Team text to lower case and remove spaces
-        self.team_mqtt_id = self.team_text.lower().replace(" ", "_")
+        self.team_mqtt_endpoint = self.team_text.lower().replace(" ", "_")
 
         # Close the popup window
         self.app.hideSubWindow("Enter Group Number")
@@ -347,7 +347,7 @@ class GroupClientComponent:
         ]
 
         payload = self.create_payload(
-            command="group_present", header=self.team_mqtt_id, body=body)
+            command="group_present", header=self.team_mqtt_endpoint, body=body)
 
         # Notify the TAs that the group is ready
         self.publish_message(self.MQTT_TOPIC_GROUP_PRESENT, payload)
@@ -385,7 +385,7 @@ class GroupClientComponent:
             body.append(task_dict)
 
             payload = self.create_payload(
-                command="request_help", header=self.team_mqtt_id, body=body)
+                command="request_help", header=self.team_mqtt_endpoint, body=body)
 
             self.publish_message(self.MQTT_TOPIC_REQUEST_HELP, payload)
             self.app.setLabel("Request feedback", "Request successfully sent!")
@@ -432,7 +432,7 @@ class GroupClientComponent:
                 body = [{"group": self.team_text, "current_task": data[0]}]
 
                 payload = self.create_payload(
-                    command="report_current_task", header=self.team_mqtt_id, body=body)
+                    command="report_current_task", header=self.team_mqtt_endpoint, body=body)
 
                 self.publish_message(self.MQTT_TOPIC_PROGRESS, payload)
                 break
@@ -452,7 +452,7 @@ class GroupClientComponent:
             body = [{"group": self.team_text}]
 
             payload = self.create_payload(
-                command="tasks_done", header=self.team_mqtt_id, body=body)
+                command="tasks_done", header=self.team_mqtt_endpoint, body=body)
 
             self.publish_message(self.MQTT_TOPIC_GROUP_DONE, payload)
 
