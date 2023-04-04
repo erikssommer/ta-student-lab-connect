@@ -148,7 +148,7 @@ class TaClientComponent:
         self.app.setLabelSticky("upper_right_label", "ne")
 
         # Add image of school logo
-        self.app.addImage("logo", "../assets/ntnu_logo.png")
+        self.app.addImage("logo", "../assets/ntnu_logo.gif")
 
         self.app.addLabel("title", "Welcome to the lab").config(
             font="Helvetica 25")

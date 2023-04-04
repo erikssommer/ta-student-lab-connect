@@ -200,7 +200,7 @@ class GroupClientComponent:
                                           str(team) for team in range(1, NR_OF_TEAMS + 1)]
 
         # Set the initial image path
-        self.image_path = "../assets/green_off.png"
+        self.image_path = "../assets/green_off.gif"
 
         # Settup the GUI
         self.setup_gui()
@@ -229,7 +229,7 @@ class GroupClientComponent:
         self.app.setLabelSticky("upper_right_label_date", "ne")
 
         # Add image of school logo
-        self.app.addImage("logo", "../assets/ntnu_logo.png")
+        self.app.addImage("logo", "../assets/ntnu_logo.gif")
 
         self.app.addLabel("title", "Welcome to the lab").config(
             font="Helvetica 25")

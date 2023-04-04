@@ -6,10 +6,10 @@ import logging
 class StatusLight:
 
     def __init__(self, name, durations, component, logger):
-        self.green_light_off = "../assets/green_off.png"
-        self.green_light_on = "../assets/green_light.png"
-        self.red_light_on = "../assets/red_light.png"
-        self.yellow_light_on = "../assets/yellow_light.png"
+        self.green_light_off = "../assets/green_off.gif"
+        self.green_light_on = "../assets/green_light.gif"
+        self.red_light_on = "../assets/red_light.gif"
+        self.yellow_light_on = "../assets/yellow_light.gif"
 
         self._logger: logging.Logger = logger
         self.name = name
