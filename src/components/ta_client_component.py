@@ -71,7 +71,6 @@ class TaClientComponent:
             # Handle the ta update message
             self.handle_ta_update_tasks(header, body)
 
-
     def publish_message(self, topic, message):
         payload = json.dumps(message)
         self._logger.debug(
@@ -87,7 +86,8 @@ class TaClientComponent:
     def create_ta_stm(self):
         """ Create a new ta state machine """
         # Create a new group state machine
-        ta_stm = TaLogic.create_machine(ta=self.ta_name, component=self, logger=self._logger)
+        ta_stm = TaLogic.create_machine(
+            ta=self.ta_name, component=self, logger=self._logger)
         # Add the state machine to the driver
         self.stm_driver.add_machine(ta_stm)
 
@@ -128,13 +128,16 @@ class TaClientComponent:
 
         self._logger.debug('Component initialization finished')
 
+        self.tasks_submitted = False
+
         # Settup the GUI
         self.setup_gui()
 
     def setup_gui(self):
         self.app = gui()
 
-        self.app.setBg("light blue")  # Set the background color of the GUI window
+        # Set the background color of the GUI window
+        self.app.setBg("light blue")
 
         # Set the size of the GUI window and primary elements
         self.app.setSize(800, 1050)  # Set the size of the GUI window
@@ -142,13 +145,15 @@ class TaClientComponent:
         self.app.setResizable(canResize=False)
 
         # Set the font size of the buttons
-        self.app.setButtonFont(size=15, family="Verdana", underline=False, slant="roman")
+        self.app.setButtonFont(size=15, family="Verdana",
+                               underline=False, slant="roman")
 
         self.app.setTitle("TA client")  # Set the title of the GUI window
         # Set the label in the upper right corner
         self.app.addLabel("upper_right_label_date",
                           f"Date: {datetime.now().strftime('%d/%m/%Y')}").config(font="Helvetica 15")
-        self.app.addLabel("upper_right_label", "TA name").config(font="Helvetica 15")
+        self.app.addLabel("upper_right_label", "TA name").config(
+            font="Helvetica 15")
         self.app.setLabelSticky("upper_right_label_date", "ne")
         self.app.setLabelSticky("upper_right_label", "ne")
 
@@ -211,6 +216,37 @@ class TaClientComponent:
         # Start the GUI
         self.app.go()
 
+    def init_popup(self):
+        # Make TA enter name
+        self.app.startSubWindow("Enter TA name", modal=True)
+        self.app.setSize(300, 200)
+        self.app.addLabelEntry("Your name:")
+        self.app.addButton("Submit", self.submit_name)
+        self.app.setStopFunction(self.sub_window_closed)
+        self.app.stopSubWindow()
+
+        self.app.showSubWindow("Enter TA name")
+
+    def submit_name(self):
+        name = self.app.getEntry("Your name:")
+        self.app.hideSubWindow("Enter TA name")
+
+        # Set the name of the TA
+        self.ta_name = name
+
+        # Set the label in the upper right corner
+        self.app.setLabel("upper_right_label", f"TA name: {name}")
+
+        # Create the ta state machine
+        self.create_ta_stm()
+
+    def sub_window_closed(self):
+        """ Close the application if the popup window is closed """
+        # Close the application if the popup window is closed
+        self.app.popUp("Info", "Application will stop", kind="info")
+        self._logger.info('Application will stop')
+        self.app.stop()
+
     def handle_request_help(self, header, body):
         # If group already in table, remove it
         for row in range(self.app.getTableRowCount("groups_request_help")):
@@ -233,10 +269,10 @@ class TaClientComponent:
         # Log the action
         self._logger.info(
             f"Group {group} requested help with {description} at {time}")
-        
+
         # Report the queue number to the group
         self.report_queue_number(header)
-    
+
     def report_queue_number(self, group):
         # Get the number of groups in the queue
         queue_number = self.app.getTableRowCount("groups_request_help")
@@ -267,7 +303,7 @@ class TaClientComponent:
 
         # Change state to "helping_group"
         self.stm_driver.send('help_group', self.ta_name)
-    
+
     def report_getting_help(self, group):
         # Wrap the group name in a list
         message = [{"group": group}]
@@ -275,7 +311,8 @@ class TaClientComponent:
         mqtt_topic_endpoint = group.lower().replace(" ", "_")
 
         # Send the group name to the group
-        self.publish_message(MQTT_TOPIC_GETTING_HELP + "/" + mqtt_topic_endpoint, message)
+        self.publish_message(MQTT_TOPIC_GETTING_HELP +
+                             "/" + mqtt_topic_endpoint, message)
 
     def report_received_help(self, group):
         # Wrap the group name in a list
@@ -284,7 +321,8 @@ class TaClientComponent:
         mqtt_topic_endpoint = group.lower().replace(" ", "_")
 
         # Send the group name to the group
-        self.publish_message(MQTT_TOPIC_RECEIVED_HELP + "/" + mqtt_topic_endpoint, message)
+        self.publish_message(MQTT_TOPIC_RECEIVED_HELP +
+                             "/" + mqtt_topic_endpoint, message)
 
     def assign_got_help(self, row):
         # Get the row of the table
@@ -374,14 +412,15 @@ class TaClientComponent:
 
     def submit_tasks(self):
         # Test if the tasks have already been submitted
-        if self.app.getTableRowCount("assigned_tasks") > 0:
+        if self.tasks_submitted:
             self.app.popUp(
                 "Error", "The tasks have already been submitted. Can only submitt tasks once", kind="error")
             return
 
         # Test if there are any tasks
         if self.app.getTableRowCount("assigned_tasks") == 0:
-            self.app.popUp("Error", "There are no tasks to submit", kind="error")
+            self.app.popUp(
+                "Error", "There are no tasks to submit", kind="error")
             return
 
         data_list = []
@@ -403,10 +442,13 @@ class TaClientComponent:
         # Publish the tasks to the MQTT broker
         self.publish_message(MQTT_TOPIC_TASKS, output_list)
 
-        payload = self.create_payload(command="ta_update_tasks", header=self.ta_name, body=output_list)
+        payload = self.create_payload(
+            command="ta_update_tasks", header=self.ta_name, body=output_list)
 
         # Send the tasks to the other TAs
         self.publish_message(MQTT_TOPIC_TA_UPDATE, payload)
+
+        self.tasks_submitted = True
 
     def handle_ta_update_tasks(self, header, body):
         # Testing if the message is from the same TA then do nothing
@@ -415,12 +457,16 @@ class TaClientComponent:
 
         # Test if there are any tasks
         if self.app.getTableRowCount("assigned_tasks") != 0:
-            self._logger.info("The tasks have already been submitted. Can only submitt tasks once")
+            self._logger.info(
+                "The tasks have already been submitted. Can only submitt tasks once")
             return
 
         # Add the tasks to the table
         for task in body:
-            self.app.addTableRow("assigned_tasks", [task['description'], task['duration']])
+            self.app.addTableRow("assigned_tasks", [
+                                 task['description'], task['duration']])
+            
+        self.tasks_submitted = True
 
     def stop(self):
         """
@@ -435,34 +481,3 @@ class TaClientComponent:
         # Log the shutdown
         self._logger.info('Shutting down TA client component')
         exit()
-
-    def init_popup(self):
-        # Make TA enter name
-        self.app.startSubWindow("Enter TA name", modal=True)
-        self.app.setSize(300, 200)
-        self.app.addLabelEntry("Your name:")
-        self.app.addButton("Submit", self.submit_name)
-        self.app.setStopFunction(self.sub_window_closed)
-        self.app.stopSubWindow()
-
-        self.app.showSubWindow("Enter TA name")
-
-    def submit_name(self):
-        name = self.app.getEntry("Your name:")
-        self.app.hideSubWindow("Enter TA name")
-
-        # Set the name of the TA
-        self.ta_name = name
-
-        # Set the label in the upper right corner
-        self.app.setLabel("upper_right_label", f"TA name: {name}")
-        
-        # Create the ta state machine
-        self.create_ta_stm()
-
-    def sub_window_closed(self):
-        """ Close the application if the popup window is closed """
-        # Close the application if the popup window is closed
-        self.app.popUp("Info", "Application will stop", kind="info")
-        self._logger.info('Application will stop')
-        self.app.stop()
