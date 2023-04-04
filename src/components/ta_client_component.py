@@ -25,6 +25,8 @@ MQTT_TOPIC_QUEUE_NUMBER = 'ttm4115/project/team10/api/v1/queue_number'
 MQTT_TOPIC_GETTING_HELP = 'ttm4115/project/team10/api/v1/getting_help'
 MQTT_TOPIC_RECEIVED_HELP = 'ttm4115/project/team10/api/v1/received_help'
 
+MQTT_TOPIC_TA_UPDATE = 'ttm4115/project/team10/api/v1/ta_update'
+
 
 class TaClientComponent:
 
@@ -65,12 +67,21 @@ class TaClientComponent:
         elif command == "report_current_task":
             # Handle the progress message
             self.handle_group_progress(header, body)
+        elif command == "ta_update_tasks":
+            # Handle the ta update message
+            self.handle_ta_update_tasks(header, body)
+
 
     def publish_message(self, topic, message):
         payload = json.dumps(message)
         self._logger.debug(
             'Publishing message to topic {}: {}'.format(topic, payload))
         self.mqtt_client.publish(topic, payload, qos=2)
+
+    # MQTT message creation logic
+    def create_payload(self, command, header, body):
+        """ Create a payload for the MQTT message """
+        return {"command": command, "header": header, "body": body}
 
     # State machine methods
     def create_ta_stm(self):
@@ -101,6 +112,7 @@ class TaClientComponent:
         self.mqtt_client.subscribe(MQTT_TOPIC_GROUP_PRESENT)
         self.mqtt_client.subscribe(MQTT_TOPIC_GROUP_DONE)
         self.mqtt_client.subscribe(MQTT_TOPIC_PROGRESS)
+        self.mqtt_client.subscribe(MQTT_TOPIC_TA_UPDATE)
 
         # Start the MQTT client in a separate thread to avoid blocking
         try:
@@ -115,8 +127,6 @@ class TaClientComponent:
         self.stm_driver.start(keep_active=True)
 
         self._logger.debug('Component initialization finished')
-
-        self.submitted_tasks = False
 
         # Settup the GUI
         self.setup_gui()
@@ -364,7 +374,7 @@ class TaClientComponent:
 
     def submit_tasks(self):
         # Test if the tasks have already been submitted
-        if self.submitted_tasks:
+        if self.app.getTableRowCount("assigned_tasks") > 0:
             self.app.popUp(
                 "Error", "The tasks have already been submitted. Can only submitt tasks once", kind="error")
             return
@@ -392,7 +402,25 @@ class TaClientComponent:
 
         # Publish the tasks to the MQTT broker
         self.publish_message(MQTT_TOPIC_TASKS, output_list)
-        self.submitted_tasks = True
+
+        payload = self.create_payload(command="ta_update_tasks", header=self.ta_name, body=output_list)
+
+        # Send the tasks to the other TAs
+        self.publish_message(MQTT_TOPIC_TA_UPDATE, payload)
+
+    def handle_ta_update_tasks(self, header, body):
+        # Testing if the message is from the same TA then do nothing
+        if header == self.ta_name:
+            return
+
+        # Test if there are any tasks
+        if self.app.getTableRowCount("assigned_tasks") != 0:
+            self._logger.info("The tasks have already been submitted. Can only submitt tasks once")
+            return
+
+        # Add the tasks to the table
+        for task in body:
+            self.app.addTableRow("assigned_tasks", [task['description'], task['duration']])
 
     def stop(self):
         """
