@@ -14,16 +14,16 @@ MQTT_BROKER = 'mqtt20.iik.ntnu.no'
 MQTT_PORT = 1883
 
 # MQTT topics
-MQTT_TOPIC_INPUT = 'ttm4115/project/team10/input'
-MQTT_TOPIC_TASKS = 'ttm4115/project/team10/tasks'
-MQTT_TOPIC_OUTPUT = 'ttm4115/project/team10/output'
-MQTT_TOPIC_REQUEST_HELP = 'ttm4115/project/team10/request'
-MQTT_TOPIC_GROUP_PRESENT = 'ttm4115/project/team10/present'
-MQTT_TOPIC_GROUP_DONE = 'ttm4115/project/team10/done'
-MQTT_TOPIC_PROGRESS = 'ttm4115/project/team10/progress'
-MQTT_TOPIC_QUEUE_NUMBER = 'ttm4115/project/team10/queue_number'
-MQTT_TOPIC_GETTING_HELP = 'ttm4115/project/team10/getting_help'
-MQTT_TOPIC_RECEIVED_HELP = 'ttm4115/project/team10/received_help'
+MQTT_TOPIC_TASKS = 'ttm4115/project/team10/api/v1/tasks'
+
+MQTT_TOPIC_REQUEST_HELP = 'ttm4115/project/team10/api/v1/request/#'
+MQTT_TOPIC_GROUP_PRESENT = 'ttm4115/project/team10/api/v1/present/#'
+MQTT_TOPIC_GROUP_DONE = 'ttm4115/project/team10/api/v1/done/#'
+MQTT_TOPIC_PROGRESS = 'ttm4115/project/team10/api/v1/progress/#'
+
+MQTT_TOPIC_QUEUE_NUMBER = 'ttm4115/project/team10/api/v1/queue_number'
+MQTT_TOPIC_GETTING_HELP = 'ttm4115/project/team10/api/v1/getting_help'
+MQTT_TOPIC_RECEIVED_HELP = 'ttm4115/project/team10/api/v1/received_help'
 
 
 class TaClientComponent:
@@ -37,9 +37,6 @@ class TaClientComponent:
         # Log the message received
         self._logger.debug('MQTT received message: {}'.format(msg.payload))
 
-        # Get the topic
-        topic = msg.topic
-
         # Unwrap the message
         try:
             payload = json.loads(msg.payload.decode('utf-8'))
@@ -48,19 +45,26 @@ class TaClientComponent:
                 'Could not decode JSON from message {}'.format(msg.payload))
             return
 
+        # Get the command
+        command = payload.get('command')
+        header = payload.get('header')
+        body = payload.get('body')
+
+        self._logger.debug(f'Received command {command}')
+
         # Handle the different topics
-        if topic == MQTT_TOPIC_REQUEST_HELP:
+        if command == "request_help":
             # Handle the request for help
-            self.handle_request_help(payload)
-        elif topic == MQTT_TOPIC_GROUP_PRESENT:
+            self.handle_request_help(header, body)
+        elif command == "group_present":
             # Handle the group present message
-            self.handle_group_present(payload)
-        elif topic == MQTT_TOPIC_GROUP_DONE:
+            self.handle_group_present(header, body)
+        elif command == "tasks_done":
             # Handle the group done message
-            self.handle_group_done(payload)
-        elif topic == MQTT_TOPIC_PROGRESS:
+            self.handle_group_done(header, body)
+        elif command == "report_current_task":
             # Handle the progress message
-            self.handle_group_progress(payload)
+            self.handle_group_progress(header, body)
 
     def publish_message(self, topic, message):
         payload = json.dumps(message)
@@ -91,9 +95,8 @@ class TaClientComponent:
         self.mqtt_client.on_message = self.on_message
         # Connect to the broker
         self.mqtt_client.connect(MQTT_BROKER, MQTT_PORT)
-        # Subscribe to the input topic
-        self.mqtt_client.subscribe(MQTT_TOPIC_INPUT)
-        self.mqtt_client.subscribe(MQTT_TOPIC_TASKS)
+
+        # Subscribe to the input topics
         self.mqtt_client.subscribe(MQTT_TOPIC_REQUEST_HELP)
         self.mqtt_client.subscribe(MQTT_TOPIC_GROUP_PRESENT)
         self.mqtt_client.subscribe(MQTT_TOPIC_GROUP_DONE)
@@ -203,17 +206,17 @@ class TaClientComponent:
         # Start the GUI
         self.app.go()
 
-    def handle_request_help(self, payload):
+    def handle_request_help(self, header, body):
         # If group already in table, remove it
         for row in range(self.app.getTableRowCount("groups_request_help")):
-            if self.app.getTableRow("groups_request_help", row)[0] == payload[0]['group']:
+            if self.app.getTableRow("groups_request_help", row)[0] == body[0]['group']:
                 self.app.deleteTableRow("groups_request_help", row)
                 break
 
         # Get the data from the payload
-        group = payload[0]['group']
-        description = payload[0]['description']
-        time = payload[0]['time']
+        group = body[0]['group']
+        description = body[0]['description']
+        time = body[0]['time']
 
         # Add the data to the table of groups requesting help
         self.app.addTableRow("groups_request_help", [
@@ -227,7 +230,7 @@ class TaClientComponent:
             f"Group {group} requested help with {description} at {time}")
         
         # Report the queue number to the group
-        self.report_queue_number(group)
+        self.report_queue_number(header)
     
     def report_queue_number(self, group):
         # Get the number of groups in the queue
@@ -237,7 +240,7 @@ class TaClientComponent:
         message = [{"queue_number": f"{queue_number + 1}"}]
 
         # Send the queue number to the group
-        self.publish_message(MQTT_TOPIC_QUEUE_NUMBER, message)
+        self.publish_message(MQTT_TOPIC_QUEUE_NUMBER + "/" + group, message)
 
     def assign_getting_help(self, row):
         # Get the row of the table
@@ -264,15 +267,19 @@ class TaClientComponent:
         # Wrap the group name in a list
         message = [{"group": group}]
 
+        mqtt_topic_endpoint = group.lower().replace(" ", "_")
+
         # Send the group name to the group
-        self.publish_message(MQTT_TOPIC_GETTING_HELP, message)
+        self.publish_message(MQTT_TOPIC_GETTING_HELP + "/" + mqtt_topic_endpoint, message)
 
     def report_received_help(self, group):
         # Wrap the group name in a list
         message = [{"group": group}]
 
+        mqtt_topic_endpoint = group.lower().replace(" ", "_")
+
         # Send the group name to the group
-        self.publish_message(MQTT_TOPIC_RECEIVED_HELP, message)
+        self.publish_message(MQTT_TOPIC_RECEIVED_HELP + "/" + mqtt_topic_endpoint, message)
 
     def assign_got_help(self, row):
         # Get the row of the table
@@ -289,17 +296,17 @@ class TaClientComponent:
         # Change state to "not_helping_group"
         self.ta_stm_driver.send('help_recieved', self.ta_name)
 
-    def handle_group_present(self, payload):
+    def handle_group_present(self, header, body):
         # Get the data from the payload
-        group = payload[0]['group']
-        task = payload[0]['current_task']
+        group = body[0]['group']
+        task = body[0]['current_task']
 
         # Add the data to the table of groups and their status
         self.app.addTableRow("group_status", [group, task])
 
-    def handle_group_done(self, payload):
+    def handle_group_done(self, header, body):
         # Get the data from the payload
-        group = payload[0]['group']
+        group = body[0]['group']
         delete_row = None
 
         # Find the row of the group in the table
@@ -313,12 +320,12 @@ class TaClientComponent:
             return
 
         # Remove the row from the table of groups and their status
-        self.app.deleteTableRow("group_status", delete_row)
+        self.app.replaceTableRow("group_status", delete_row, [group, "Done"])
 
-    def handle_group_progress(self, payload):
+    def handle_group_progress(self, header, body):
         # Get the data from the payload
-        group = payload[0]['group']
-        task = payload[0]['current_task']
+        group = body[0]['group']
+        task = body[0]['current_task']
         task = f"Task {task} in progress"
         update_row = None
 
@@ -332,11 +339,8 @@ class TaClientComponent:
             self._logger.error(f"Group {group} not found in table")
             return
 
-        # Remove the row from the table of groups and their status
-        self.app.deleteTableRow("group_status", update_row)
-
-        # Update the row in the table of groups and their status
-        self.app.addTableRow("group_status", [group, task])
+        # Update the row from the table of groups and their status
+        self.app.replaceTableRow("group_status", update_row, [group, task])
 
     def show_instructions(self):
         self.app.infoBox(title="Instructions",
