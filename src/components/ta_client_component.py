@@ -229,10 +229,15 @@ class TaClientComponent:
 
     def submit_name(self):
         name = self.app.getEntry("Your name:")
-        self.app.hideSubWindow("Enter TA name")
 
+        if name == "":
+            self.app.errorBox("Error", "Please enter a name")
+            return
+        
         # Set the name of the TA
         self.ta_name = name
+        
+        self.app.hideSubWindow("Enter TA name")
 
         # Set the label in the upper right corner
         self.app.setLabel("upper_right_label", f"TA name: {name}")
