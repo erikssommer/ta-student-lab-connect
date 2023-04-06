@@ -27,9 +27,22 @@ MQTT_TOPIC_GETTING_HELP = 'ttm4115/project/team10/api/v1/getting_help'
 MQTT_TOPIC_RECEIVED_HELP = 'ttm4115/project/team10/api/v1/received_help'
 
 MQTT_TOPIC_TA_UPDATE = 'ttm4115/project/team10/api/v1/ta_update'
+MQTT_TOPIC_TA = 'ttm4115/project/team10/api/v1/ta'
 
 
 class TaClientComponent:
+
+    def set_topics(self):
+        self.MQTT_TOPIC_TA = MQTT_TOPIC_TA + "/" + self.ta_mqtt_endpoint
+
+    def subscribe_topics(self):
+        # Subscribe to the input topics
+        self.mqtt_client.subscribe(MQTT_TOPIC_REQUEST_HELP)
+        self.mqtt_client.subscribe(MQTT_TOPIC_GROUP_PRESENT)
+        self.mqtt_client.subscribe(MQTT_TOPIC_GROUP_DONE)
+        self.mqtt_client.subscribe(MQTT_TOPIC_PROGRESS)
+        self.mqtt_client.subscribe(MQTT_TOPIC_TA_UPDATE)
+        self.mqtt_client.subscribe(self.MQTT_TOPIC_TA)
 
     # MQTT communication methods
     def on_connect(self, client, userdata, flags, rc):
@@ -77,6 +90,12 @@ class TaClientComponent:
         elif command == "ta_update_received_help":
             # Handle the ta update message
             self.handle_ta_update_received_help(header, body)
+        elif command == "request_update_of_tables":
+            # Handle the ta request for table updates
+            self.handle_request_update_of_tables(header, body)
+        elif command == "ta_update_tables":
+            # Handle the ta update message
+            self.handle_ta_update_tables(header, body)
 
     def publish_message(self, topic, message):
         payload = json.dumps(message)
@@ -111,15 +130,9 @@ class TaClientComponent:
         # callback methods
         self.mqtt_client.on_connect = self.on_connect
         self.mqtt_client.on_message = self.on_message
+
         # Connect to the broker
         self.mqtt_client.connect(MQTT_BROKER, MQTT_PORT)
-
-        # Subscribe to the input topics
-        self.mqtt_client.subscribe(MQTT_TOPIC_REQUEST_HELP)
-        self.mqtt_client.subscribe(MQTT_TOPIC_GROUP_PRESENT)
-        self.mqtt_client.subscribe(MQTT_TOPIC_GROUP_DONE)
-        self.mqtt_client.subscribe(MQTT_TOPIC_PROGRESS)
-        self.mqtt_client.subscribe(MQTT_TOPIC_TA_UPDATE)
 
         # Start the MQTT client in a separate thread to avoid blocking
         try:
@@ -245,10 +258,22 @@ class TaClientComponent:
         # Set the name of the TA
         self.ta_name = name
 
+        # Set the endpont for the TA
+        self.ta_mqtt_endpoint = self.ta_name.lower().replace(" ", "_")
+
         self.app.hideSubWindow("Enter TA name")
 
         # Set the label in the upper right corner
         self.app.setLabel("upper_right_label", f"TA name: {name}")
+
+        # Set the topics specific for the TA
+        self.set_topics()
+
+        # Subscribe to the topics
+        self.subscribe_topics()
+
+        # Request the tables to be updated for a late joiner
+        self.request_update_of_tables()
 
         # Create the ta state machine
         self.create_ta_stm()
@@ -266,6 +291,15 @@ class TaClientComponent:
                             The duration must be a number. \
                                 When you are done, press the submit button to publish the tasks to the MQTT broker. \
                                     The tasks will be enumberated from 1 to n, where n is the number of tasks.")
+
+    def request_update_of_tables(self):
+        # Request the tables to be updated
+        self._logger.info('Requesting update of tables')
+
+        payload = self.create_payload(
+            command="request_update_of_tables", header=self.ta_name, body="")
+
+        self.publish_message(MQTT_TOPIC_TA_UPDATE, payload)
 
     def handle_request_help(self, header, body):
         # If group already in table, remove it
@@ -394,13 +428,14 @@ class TaClientComponent:
         group = body['group']
 
         if self.app.getTableRowCount("assigned_tasks") == 0:
-            self.app.addTableRow("group_status", [group, "Waiting for TAs to assign tasks..."])
+            self.app.addTableRow(
+                "group_status", [group, "Waiting for TAs to assign tasks..."])
             return
-        
-        task = "Task 1 in progress"
+
+        status = "Task 1 in progress"
 
         # Add the data to the table of groups and their status
-        self.app.addTableRow("group_status", [group, task])
+        self.app.addTableRow("group_status", [group, status])
 
         # Send the list of tasks to the group
         self.update_group_with_tasks(group)
@@ -425,7 +460,8 @@ class TaClientComponent:
         mqtt_topic_endpoint = group.lower().replace(" ", "_")
 
         # Send the tasks to the group
-        self.publish_message(MQTT_TOPIC_TASKS_LATE + "/" + mqtt_topic_endpoint, output_list)
+        self.publish_message(MQTT_TOPIC_TASKS_LATE + "/" +
+                             mqtt_topic_endpoint, output_list)
 
     def handle_group_done(self, header, body):
         # Get the data from the payload
@@ -544,7 +580,7 @@ class TaClientComponent:
         for task in body:
             self.app.addTableRow("assigned_tasks", [
                                  task['description'], task['duration']])
-            
+
         # Change the status of the groups to "Task 1 in progress"
         for row in range(self.app.getTableRowCount("group_status")):
             data = self.app.getTableRow("group_status", row)
@@ -572,6 +608,80 @@ class TaClientComponent:
 
         # Remove the row from the table of groups requesting help
         self.app.deleteTableRow("groups_getting_help", body['row'])
+
+    def handle_request_update_of_tables(self, header, body):
+        # Test if the message is from the same TA then do nothing
+        if header == self.ta_name:
+            return
+
+        assigned_tasks, groups_request_help, groups_getting_help, group_status = [], [], [], []
+
+        if self.app.getTableRowCount("assigned_tasks") != 0:
+            for row in range(self.app.getTableRowCount("assigned_tasks")):
+                assigned_tasks.append(
+                    self.app.getTableRow("assigned_tasks", row))
+
+        if self.app.getTableRowCount("groups_request_help") != 0:
+            for row in range(self.app.getTableRowCount("groups_request_help")):
+                groups_request_help.append(
+                    self.app.getTableRow("groups_request_help", row))
+
+        if self.app.getTableRowCount("groups_getting_help") != 0:
+            for row in range(self.app.getTableRowCount("groups_getting_help")):
+                groups_getting_help.append(
+                    self.app.getTableRow("groups_getting_help", row))
+
+        if self.app.getTableRowCount("group_status") != 0:
+            for row in range(self.app.getTableRowCount("group_status")):
+                group_status.append(self.app.getTableRow("group_status", row))
+
+        # Test if all the tables are empty, if so then do nothing
+        if len(assigned_tasks) == 0 and len(groups_request_help) == 0 \
+                and len(groups_getting_help) == 0 and len(group_status) == 0:
+            return
+
+        body = {
+            "assigned_tasks": assigned_tasks,
+            "groups_request_help": groups_request_help,
+            "groups_getting_help": groups_getting_help,
+            "group_status": group_status
+        }
+
+        payload = self.create_payload(
+            command="ta_update_tables", header=self.ta_name, body=body)
+
+        ta_endpoint = header.lower().replace(" ", "_")
+
+        # Send the tasks to the TA that requested the update
+        self.publish_message(MQTT_TOPIC_TA + "/" + ta_endpoint, payload)
+
+    def handle_ta_update_tables(self, header, body):
+
+        # Test if there are any tasks
+        if self.app.getTableRowCount("assigned_tasks") != 0:
+            self._logger.info(
+                "The tasks have already been submitted. Can only submitt tasks once")
+            return
+
+        # Add the tasks to the table
+        for item in body['assigned_tasks']:
+            self.app.addTableRow("assigned_tasks", [
+                                 item[0], item[1]])
+
+        # Add the groups to the table
+        for item in body['groups_request_help']:
+            self.app.addTableRow("groups_request_help", [
+                                 item[0], item[1], item[2]])
+
+        # Add the groups to the table
+        for item in body['groups_getting_help']:
+            self.app.addTableRow("groups_getting_help", [
+                                 item[0], item[1], item[2], item[3]])
+
+        # Add the groups to the table
+        for item in body['group_status']:
+            self.app.addTableRow("group_status", [
+                                 item[0], item[1]])
 
     def stop(self):
         """
