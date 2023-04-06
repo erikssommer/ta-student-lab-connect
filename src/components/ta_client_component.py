@@ -512,6 +512,12 @@ class TaClientComponent:
             }
             output_list.append(task_dict)
 
+        # Change the status of the groups to "Task 1 in progress"
+        for row in range(self.app.getTableRowCount("group_status")):
+            data = self.app.getTableRow("group_status", row)
+            data[1] = "Task 1 in progress"
+            self.app.replaceTableRow("group_status", row, data)
+
         # Publish the tasks to the MQTT broker
         self.publish_message(MQTT_TOPIC_TASKS, output_list)
 
@@ -538,6 +544,12 @@ class TaClientComponent:
         for task in body:
             self.app.addTableRow("assigned_tasks", [
                                  task['description'], task['duration']])
+            
+        # Change the status of the groups to "Task 1 in progress"
+        for row in range(self.app.getTableRowCount("group_status")):
+            data = self.app.getTableRow("group_status", row)
+            data[1] = "Task 1 in progress"
+            self.app.replaceTableRow("group_status", row, data)
 
         self.tasks_submitted = True
 
