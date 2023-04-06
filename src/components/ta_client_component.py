@@ -254,6 +254,10 @@ class TaClientComponent:
         if name == "":
             self.app.errorBox("Error", "Please enter a name")
             return
+        
+        if name.isalpha() == False:
+            self.app.errorBox("Error", "Please enter a name with only letters")
+            return
 
         # Set the name of the TA
         self.ta_name = name
