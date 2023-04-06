@@ -73,6 +73,9 @@ class TaClientComponent:
         elif command == "ta_update_receiving_help":
             # Handle the ta update message
             self.handle_ta_update_receiving_help(header, body)
+        elif command == "ta_update_received_help":
+            # Handle the ta update message
+            self.handle_ta_update_received_help(header, body)
 
     def publish_message(self, topic, message):
         payload = json.dumps(message)
@@ -360,8 +363,22 @@ class TaClientComponent:
         # Report to group that it got help
         self.report_received_help(data[0])
 
+        # Notify other TAs that the group got help
+        self.notify_other_tas_got_help(row)
+
         # Change state to "not_helping_group"
         self.stm_driver.send('help_recieved', self.ta_name)
+
+    def notify_other_tas_got_help(self, row):
+
+        body = {
+            "row": row
+        }
+
+        payload = self.create_payload(
+            command="ta_update_received_help", header=self.ta_name, body=body)
+
+        self.publish_message(MQTT_TOPIC_TA_UPDATE, payload)
 
     def handle_group_present(self, header, body):
         # Get the data from the payload
@@ -496,12 +513,21 @@ class TaClientComponent:
         # Testing if the message is from the same TA then do nothing
         if header == self.ta_name:
             return
-        
+
         # Remove the row from the table of groups requesting help
         self.app.deleteTableRow("groups_request_help", body['row'])
 
         # Add the groups to the table
-        self.app.addTableRow("groups_getting_help", [body['group'], body['description'], body['time'], body['ta']])
+        self.app.addTableRow("groups_getting_help", [
+                             body['group'], body['description'], body['time'], body['ta']])
+
+    def handle_ta_update_received_help(self, header, body):
+        # Testing if the message is from the same TA then do nothing
+        if header == self.ta_name:
+            return
+
+        # Remove the row from the table of groups requesting help
+        self.app.deleteTableRow("groups_getting_help", body['row'])
 
     def stop(self):
         """
