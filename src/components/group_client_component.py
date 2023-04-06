@@ -18,6 +18,7 @@ MQTT_PORT = 1883
 
 # MQTT topics, the team number is appended to the end of the topic when logging in and subscribing
 MQTT_TOPIC_TASKS = 'ttm4115/project/team10/api/v1/tasks'
+MQTT_TOPIC_UPDATE_TASKS = 'ttm4115/project/team10/api/v1/update_tasks'
 
 MQTT_TOPIC_REQUEST_HELP = 'ttm4115/project/team10/api/v1/request'
 MQTT_TOPIC_GROUP_PRESENT = 'ttm4115/project/team10/api/v1/present'
@@ -35,6 +36,7 @@ class GroupClientComponent:
         """ Set the topics for the group client component """
         self._logger.debug('Setting topics')
         self.MQTT_TOPIC_TASKS = MQTT_TOPIC_TASKS
+        self.MQTT_TOPIC_UPDATE_TASKS = MQTT_TOPIC_UPDATE_TASKS
 
         self.MQTT_TOPIC_REQUEST_HELP = MQTT_TOPIC_REQUEST_HELP + \
             "/" + self.team_mqtt_endpoint
@@ -326,10 +328,9 @@ class GroupClientComponent:
         # Subscribe to the topic for the group
         self.subscribe_topics()
 
-        body = [
-            {"group": self.team_text,
-             "current_task": "Waiting for TAs to assign tasks..."}
-        ]
+        body = {
+            "group": self.team_text
+        }
 
         payload = self.create_payload(
             command="group_present", header=self.team_mqtt_endpoint, body=body)

@@ -390,8 +390,13 @@ class TaClientComponent:
 
     def handle_group_present(self, header, body):
         # Get the data from the payload
-        group = body[0]['group']
-        task = body[0]['current_task']
+        group = body['group']
+
+        if self.app.getTableRowCount("assigned_tasks") == 0:
+            self.app.addTableRow("group_status", [group, "Waiting for TAs to assign tasks..."])
+            return
+        
+        task = "Task 1 in progress"
 
         # Add the data to the table of groups and their status
         self.app.addTableRow("group_status", [group, task])
