@@ -215,14 +215,15 @@ class TaClientComponent:
         # Add a table of groups and their status
         self.app.addTable("group_status", [["Group", "Current task"]])
 
-        self.init_popup()
+        # Setting up the component for the given ta
+        self.show_enter_ta_name_popup()
 
         self.app.setStopFunction(self.stop)
 
         # Start the GUI
         self.app.go()
 
-    def init_popup(self):
+    def show_enter_ta_name_popup(self):
         # Make TA enter name
         self.app.startSubWindow("Enter TA name", modal=True)
         self.app.setSize(300, 200)
@@ -257,6 +258,13 @@ class TaClientComponent:
         self.app.popUp("Info", "Application will stop", kind="info")
         self._logger.info('Application will stop')
         self.app.stop()
+
+    def show_instructions(self):
+        self.app.infoBox(title="Instructions",
+                         message="Assign tasks to the students by filling in the description and duration of the task. \
+                            The duration must be a number. \
+                                When you are done, press the submit button to publish the tasks to the MQTT broker. \
+                                    The tasks will be enumberated from 1 to n, where n is the number of tasks.")
 
     def handle_request_help(self, header, body):
         # If group already in table, remove it
@@ -425,13 +433,6 @@ class TaClientComponent:
 
         # Update the row from the table of groups and their status
         self.app.replaceTableRow("group_status", update_row, [group, task])
-
-    def show_instructions(self):
-        self.app.infoBox(title="Instructions",
-                         message="Assign tasks to the students by filling in the description and duration of the task. \
-                            The duration must be a number. \
-                                When you are done, press the submit button to publish the tasks to the MQTT broker. \
-                                    The tasks will be enumberated from 1 to n, where n is the number of tasks.")
 
     def add_task(self):
         data_list = self.app.getTableEntries("assigned_tasks")

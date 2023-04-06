@@ -36,14 +36,19 @@ class GroupClientComponent:
         self._logger.debug('Setting topics')
         self.MQTT_TOPIC_TASKS = MQTT_TOPIC_TASKS
 
-        self.MQTT_TOPIC_REQUEST_HELP = MQTT_TOPIC_REQUEST_HELP + "/" + self.team_mqtt_endpoint
-        self.MQTT_TOPIC_GROUP_PRESENT = MQTT_TOPIC_GROUP_PRESENT + "/" + self.team_mqtt_endpoint
+        self.MQTT_TOPIC_REQUEST_HELP = MQTT_TOPIC_REQUEST_HELP + \
+            "/" + self.team_mqtt_endpoint
+        self.MQTT_TOPIC_GROUP_PRESENT = MQTT_TOPIC_GROUP_PRESENT + \
+            "/" + self.team_mqtt_endpoint
         self.MQTT_TOPIC_GROUP_DONE = MQTT_TOPIC_GROUP_DONE + "/" + self.team_mqtt_endpoint
         self.MQTT_TOPIC_PROGRESS = MQTT_TOPIC_PROGRESS + "/" + self.team_mqtt_endpoint
 
-        self.MQTT_TOPIC_QUEUE_NUMBER = MQTT_TOPIC_QUEUE_NUMBER + "/" + self.team_mqtt_endpoint
-        self.MQTT_TOPIC_GETTING_HELP = MQTT_TOPIC_GETTING_HELP + "/" + self.team_mqtt_endpoint
-        self.MQTT_TOPIC_RECEIVED_HELP = MQTT_TOPIC_RECEIVED_HELP + "/" + self.team_mqtt_endpoint
+        self.MQTT_TOPIC_QUEUE_NUMBER = MQTT_TOPIC_QUEUE_NUMBER + \
+            "/" + self.team_mqtt_endpoint
+        self.MQTT_TOPIC_GETTING_HELP = MQTT_TOPIC_GETTING_HELP + \
+            "/" + self.team_mqtt_endpoint
+        self.MQTT_TOPIC_RECEIVED_HELP = MQTT_TOPIC_RECEIVED_HELP + \
+            "/" + self.team_mqtt_endpoint
 
     def subscribe_topics(self):
         """ Subscribe to the topics for the group client component """
@@ -232,7 +237,7 @@ class GroupClientComponent:
         self.app.addLabel("subtitle", "Tasks for this lab session:").config(
             font="Helvetica 15")
         self.app.setLabelSticky("subtitle", "w")
-        self.app.addButton("Show Instructions", self.show_message)
+        self.app.addButton("Show Instructions", self.show_instructions)
         self.app.setButtonSticky("Show Instructions", "w")
 
         # Add empty label for spacing
@@ -269,49 +274,29 @@ class GroupClientComponent:
         # Light status elements
         self.app.addLabel("light_label", "Light status:")
         self.app.addImage("light", self.image_path)
-        self.init_popup()
+
+        # Setting up the component for the given group
+        self.show_enter_group_name_popup()
 
         self.app.setStopFunction(self.stop)
 
         # Start the GUI
         self.app.go()
 
-    def stop(self):
-        """
-        Stop the component.
-        """
-        # stop the MQTT client
-        self.mqtt_client.loop_stop()
-
-        # stop the stmpy drivers
-        self.stm_driver.stop()
-
-        # Log the shutdown
-        self._logger.info('Shutting down Component')
-        exit()
-
-    def show_message(self):
-        """ Show the instructions for the lab session """
-        self.app.infoBox(title="Instructions",
-                         message="Use the checkboxes to mark the tasks you have completed. \
-                         When you are ready to request help, enter a description of the help you need in the text \
-                          field below and click the 'Request Help' button. The TAs will then come to your group and \
-                          help you with your tasks. Good luck!")
-
-    def init_popup(self):
+    def show_enter_group_name_popup(self):
         """ Initialize the popup window """
         # Define the popup window
         self.app.startSubWindow("Enter Group Number", modal=True)
         self.app.setSize(300, 200)
         self.app.addOptionBox("team_dropdown", self.teams, height=3)
-        self.app.addButton("Submit", self.submit_message)
+        self.app.addButton("Submit", self.submit_group)
         self.app.setStopFunction(self.sub_window_closed)
         self.app.stopSubWindow()
 
         # Show the popup window
         self.app.showSubWindow("Enter Group Number")
 
-    def submit_message(self):
+    def submit_group(self):
         """ Submit the message from the input field """
         # Retrieve the message from the input field
         message = self.app.getOptionBox("team_dropdown")
@@ -361,6 +346,14 @@ class GroupClientComponent:
         self.app.popUp("Info", "Application will stop", kind="info")
         self._logger.info('Application will stop')
         self.app.stop()
+
+    def show_instructions(self):
+        """ Show the instructions for the lab session """
+        self.app.infoBox(title="Instructions",
+                         message="Use the checkboxes to mark the tasks you have completed. \
+                         When you are ready to request help, enter a description of the help you need in the text \
+                          field below and click the 'Request Help' button. The TAs will then come to your group and \
+                          help you with your tasks. Good luck!")
 
     def on_request_help(self):
         help_request = self.app.getEntry("Description:")
@@ -458,3 +451,17 @@ class GroupClientComponent:
 
             # Change state to "tasks_done"
             self.stm_driver.send("tasks_done", self.team_text)
+
+    def stop(self):
+        """
+        Stop the component.
+        """
+        # stop the MQTT client
+        self.mqtt_client.loop_stop()
+
+        # stop the stmpy drivers
+        self.stm_driver.stop()
+
+        # Log the shutdown
+        self._logger.info('Shutting down Component')
+        exit()
