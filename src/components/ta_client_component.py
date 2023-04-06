@@ -15,6 +15,7 @@ MQTT_PORT = 1883
 
 # MQTT topics
 MQTT_TOPIC_TASKS = 'ttm4115/project/team10/api/v1/tasks'
+MQTT_TOPIC_TASKS_LATE = 'ttm4115/project/team10/api/v1/tasks/late'
 
 MQTT_TOPIC_REQUEST_HELP = 'ttm4115/project/team10/api/v1/request/#'
 MQTT_TOPIC_GROUP_PRESENT = 'ttm4115/project/team10/api/v1/present/#'
@@ -400,6 +401,31 @@ class TaClientComponent:
 
         # Add the data to the table of groups and their status
         self.app.addTableRow("group_status", [group, task])
+
+        # Send the list of tasks to the group
+        self.update_group_with_tasks(group)
+
+    def update_group_with_tasks(self, group):
+        data_list = []
+
+        for row in range(self.app.getTableRowCount("assigned_tasks")):
+            data_list.append(self.app.getTableRow("assigned_tasks", row))
+
+        # Convert into a json list of dictionaries
+        output_list = []
+
+        for index, sublist in enumerate(data_list):
+            task_dict = {
+                "task": str(index+1),
+                "description": sublist[0],
+                "duration": sublist[1]
+            }
+            output_list.append(task_dict)
+
+        mqtt_topic_endpoint = group.lower().replace(" ", "_")
+
+        # Send the tasks to the group
+        self.publish_message(MQTT_TOPIC_TASKS_LATE + "/" + mqtt_topic_endpoint, output_list)
 
     def handle_group_done(self, header, body):
         # Get the data from the payload

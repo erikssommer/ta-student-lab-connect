@@ -18,7 +18,7 @@ MQTT_PORT = 1883
 
 # MQTT topics, the team number is appended to the end of the topic when logging in and subscribing
 MQTT_TOPIC_TASKS = 'ttm4115/project/team10/api/v1/tasks'
-MQTT_TOPIC_UPDATE_TASKS = 'ttm4115/project/team10/api/v1/update_tasks'
+MQTT_TOPIC_TASKS_LATE = 'ttm4115/project/team10/api/v1/tasks/late'
 
 MQTT_TOPIC_REQUEST_HELP = 'ttm4115/project/team10/api/v1/request'
 MQTT_TOPIC_GROUP_PRESENT = 'ttm4115/project/team10/api/v1/present'
@@ -36,8 +36,9 @@ class GroupClientComponent:
         """ Set the topics for the group client component """
         self._logger.debug('Setting topics')
         self.MQTT_TOPIC_TASKS = MQTT_TOPIC_TASKS
-        self.MQTT_TOPIC_UPDATE_TASKS = MQTT_TOPIC_UPDATE_TASKS
 
+        self.MQTT_TOPIC_TASKS_LATE = MQTT_TOPIC_TASKS_LATE + \
+            "/" + self.team_mqtt_endpoint
         self.MQTT_TOPIC_REQUEST_HELP = MQTT_TOPIC_REQUEST_HELP + \
             "/" + self.team_mqtt_endpoint
         self.MQTT_TOPIC_GROUP_PRESENT = MQTT_TOPIC_GROUP_PRESENT + \
@@ -56,6 +57,7 @@ class GroupClientComponent:
         """ Subscribe to the topics for the group client component """
         self._logger.debug('Subscribing to topics')
         self.mqtt_client.subscribe(self.MQTT_TOPIC_TASKS)
+        self.mqtt_client.subscribe(self.MQTT_TOPIC_TASKS_LATE)
         self.mqtt_client.subscribe(self.MQTT_TOPIC_QUEUE_NUMBER)
         self.mqtt_client.subscribe(self.MQTT_TOPIC_GETTING_HELP)
         self.mqtt_client.subscribe(self.MQTT_TOPIC_RECEIVED_HELP)
@@ -83,40 +85,13 @@ class GroupClientComponent:
 
         # Handle the different topics
         if topic == self.MQTT_TOPIC_TASKS:
-            # Check if the group already is assigned tasks
-            if self.app.getTableRowCount("table_tasks") > 0:
-                self._logger.debug(
-                    'Already have tasks, not updating the listbox')
-                return
-
-            self.app.setLabel("listbox_tasks_label", "")
-            # Keep track of the task durations for the status light stm
-            duration_list = []
-            # Populate the listbox with tasks
-            for i, task in enumerate(payload):
-                # set the status for the first row to "in progress"
-                if i == 0:
-                    status = "In progress"
-                else:
-                    status = "Not done"
-                self.app.addTableRow(
-                    "table_tasks", [task['task'], task['description'], task['duration'], status])
-                duration_list.append(task['duration'])
-
-            # Set the status of the first task to "in progress"
-            # Report the task as done to the TAs
-            body = [{"group": self.team_text, "current_task": "1"}]
-
-            payload = self.create_payload(
-                command="report_current_task", header=self.team_mqtt_endpoint, body=body)
-
-            self.publish_message(self.MQTT_TOPIC_PROGRESS, payload)
-
-            # Cange state to "working on task"
-            self.stm_driver.send('task_start', self.team_text)
-
-            self.create_status_light_stm(durations=duration_list)
-
+            # Update the listbox with the tasks
+            self.handle_recieve_tasks(payload)
+        
+        if topic == self.MQTT_TOPIC_TASKS_LATE:
+            # Update the listbox with the late tasks
+            self.handle_recieve_tasks(payload)
+            
         if topic == self.MQTT_TOPIC_QUEUE_NUMBER:
             self.queue_number = payload[0]['queue_number']
             self.app.setLabel("queue_number_label",
@@ -355,6 +330,32 @@ class GroupClientComponent:
                          When you are ready to request help, enter a description of the help you need in the text \
                           field below and click the 'Request Help' button. The TAs will then come to your group and \
                           help you with your tasks. Good luck!")
+        
+    def handle_recieve_tasks(self, payload):
+        # Check if the group already is assigned tasks
+            if self.app.getTableRowCount("table_tasks") > 0:
+                self._logger.debug(
+                    'Already have tasks, not updating the listbox')
+                return
+
+            self.app.setLabel("listbox_tasks_label", "")
+            # Keep track of the task durations for the status light stm
+            duration_list = []
+            # Populate the listbox with tasks
+            for i, task in enumerate(payload):
+                # set the status for the first row to "in progress"
+                if i == 0:
+                    status = "In progress"
+                else:
+                    status = "Not done"
+                self.app.addTableRow(
+                    "table_tasks", [task['task'], task['description'], task['duration'], status])
+                duration_list.append(task['duration'])
+
+            # Cange state to "working on task"
+            self.stm_driver.send('task_start', self.team_text)
+
+            self.create_status_light_stm(durations=duration_list)
 
     def on_request_help(self):
         help_request = self.app.getEntry("Description:")
