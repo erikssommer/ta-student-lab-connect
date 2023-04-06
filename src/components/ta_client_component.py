@@ -70,6 +70,9 @@ class TaClientComponent:
         elif command == "ta_update_tasks":
             # Handle the ta update message
             self.handle_ta_update_tasks(header, body)
+        elif command == "ta_update_receiving_help":
+            # Handle the ta update message
+            self.handle_ta_update_receiving_help(header, body)
 
     def publish_message(self, topic, message):
         payload = json.dumps(message)
@@ -233,10 +236,10 @@ class TaClientComponent:
         if name == "":
             self.app.errorBox("Error", "Please enter a name")
             return
-        
+
         # Set the name of the TA
         self.ta_name = name
-        
+
         self.app.hideSubWindow("Enter TA name")
 
         # Set the label in the upper right corner
@@ -306,8 +309,24 @@ class TaClientComponent:
         # Report to group that it is getting help
         self.report_getting_help(data[0])
 
+        self.notify_other_tas_getting_help(data, row)
+
         # Change state to "helping_group"
         self.stm_driver.send('help_group', self.ta_name)
+
+    def notify_other_tas_getting_help(self, data, row):
+        body = {
+            "group": data[0],
+            "description": data[1],
+            "time": data[2],
+            "ta": data[3],
+            "row": row
+        }
+
+        payload = self.create_payload(
+            command="ta_update_receiving_help", header=self.ta_name, body=body)
+
+        self.publish_message(MQTT_TOPIC_TA_UPDATE, payload)
 
     def report_getting_help(self, group):
         # Wrap the group name in a list
@@ -470,8 +489,19 @@ class TaClientComponent:
         for task in body:
             self.app.addTableRow("assigned_tasks", [
                                  task['description'], task['duration']])
-            
+
         self.tasks_submitted = True
+
+    def handle_ta_update_receiving_help(self, header, body):
+        # Testing if the message is from the same TA then do nothing
+        if header == self.ta_name:
+            return
+        
+        # Remove the row from the table of groups requesting help
+        self.app.deleteTableRow("groups_request_help", body['row'])
+
+        # Add the groups to the table
+        self.app.addTableRow("groups_getting_help", [body['group'], body['description'], body['time'], body['ta']])
 
     def stop(self):
         """
