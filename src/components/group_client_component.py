@@ -180,6 +180,9 @@ class GroupClientComponent:
         # Set the initial image path
         self.image_path = "../assets/green_off.gif"
 
+        # Can only update tasks once
+        self.update_tasks = False
+
         # Settup the GUI
         self.setup_gui()
 
@@ -332,30 +335,33 @@ class GroupClientComponent:
                           help you with your tasks. Good luck!")
         
     def handle_recieve_tasks(self, payload):
+        # Only update the tasks once
+        if self.update_tasks:
+            return
+        
+        self.update_tasks = True
+
         # Check if the group already is assigned tasks
-            if self.app.getTableRowCount("table_tasks") > 0:
-                self._logger.debug(
-                    'Already have tasks, not updating the listbox')
-                return
-
-            self.app.setLabel("listbox_tasks_label", "")
-            # Keep track of the task durations for the status light stm
-            duration_list = []
-            # Populate the listbox with tasks
-            for i, task in enumerate(payload):
-                # set the status for the first row to "in progress"
-                if i == 0:
-                    status = "In progress"
-                else:
-                    status = "Not done"
-                self.app.addTableRow(
-                    "table_tasks", [task['task'], task['description'], task['duration'], status])
-                duration_list.append(task['duration'])
-
-            # Cange state to "working on task"
-            self.stm_driver.send('task_start', self.team_text)
-
-            self.create_status_light_stm(durations=duration_list)
+        if self.app.getTableRowCount("table_tasks") > 0:
+            self._logger.debug(
+                'Already have tasks, not updating the listbox')
+            return
+        self.app.setLabel("listbox_tasks_label", "")
+        # Keep track of the task durations for the status light stm
+        duration_list = []
+        # Populate the listbox with tasks
+        for i, task in enumerate(payload):
+            # set the status for the first row to "in progress"
+            if i == 0:
+                status = "In progress"
+            else:
+                status = "Not done"
+            self.app.addTableRow(
+                "table_tasks", [task['task'], task['description'], task['duration'], status])
+            duration_list.append(task['duration'])
+        # Cange state to "working on task"
+        self.stm_driver.send('task_start', self.team_text)
+        self.create_status_light_stm(durations=duration_list)
 
     def on_request_help(self):
         help_request = self.app.getEntry("Description:")

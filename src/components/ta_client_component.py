@@ -150,6 +150,9 @@ class TaClientComponent:
 
         self.tasks_submitted = False
 
+        # Can only update tables once
+        self.update_tabels = False
+
         # Settup the GUI
         self.setup_gui()
 
@@ -660,6 +663,11 @@ class TaClientComponent:
         self.publish_message(MQTT_TOPIC_TA + "/" + ta_endpoint, payload)
 
     def handle_ta_update_tables(self, header, body):
+        # Only update the tables once
+        if self.update_tabels:
+            return
+        
+        self.update_tabels = True
 
         # Test if there are any tasks
         if self.app.getTableRowCount("assigned_tasks") != 0:
@@ -668,24 +676,28 @@ class TaClientComponent:
             return
 
         # Add the tasks to the table
-        for item in body['assigned_tasks']:
-            self.app.addTableRow("assigned_tasks", [
-                                 item[0], item[1]])
+        if self.app.getTableRowCount("assigned_tasks") == 0:
+            for item in body['assigned_tasks']:
+                self.app.addTableRow("assigned_tasks", [
+                                    item[0], item[1]])
+                
+        # Add the groups to the table
+        if self.app.getTableRowCount("groups_request_help") == 0:
+            for item in body['groups_request_help']:
+                self.app.addTableRow("groups_request_help", [
+                                    item[0], item[1], item[2]])
 
         # Add the groups to the table
-        for item in body['groups_request_help']:
-            self.app.addTableRow("groups_request_help", [
-                                 item[0], item[1], item[2]])
+        if self.app.getTableRowCount("groups_getting_help") == 0:
+            for item in body['groups_getting_help']:
+                self.app.addTableRow("groups_getting_help", [
+                                    item[0], item[1], item[2], item[3]])
 
         # Add the groups to the table
-        for item in body['groups_getting_help']:
-            self.app.addTableRow("groups_getting_help", [
-                                 item[0], item[1], item[2], item[3]])
-
-        # Add the groups to the table
-        for item in body['group_status']:
-            self.app.addTableRow("group_status", [
-                                 item[0], item[1]])
+        if self.app.getTableRowCount("group_status") == 0:
+            for item in body['group_status']:
+                self.app.addTableRow("group_status", [
+                                    item[0], item[1]])
 
     def stop(self):
         """
