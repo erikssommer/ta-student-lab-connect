@@ -624,7 +624,7 @@ class TaClientComponent:
 
         assigned_tasks, groups_request_help, groups_getting_help, group_status = [], [], [], []
 
-        if self.app.getTableRowCount("assigned_tasks") != 0:
+        if self.app.getTableRowCount("assigned_tasks") != 0 and self.tasks_submitted:
             for row in range(self.app.getTableRowCount("assigned_tasks")):
                 assigned_tasks.append(
                     self.app.getTableRow("assigned_tasks", row))
