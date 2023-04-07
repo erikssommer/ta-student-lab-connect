@@ -445,7 +445,8 @@ class TaClientComponent:
         self.app.addTableRow("group_status", [group, status])
 
         # Send the list of tasks to the group
-        self.update_group_with_tasks(group)
+        if self.tasks_submitted:
+            self.update_group_with_tasks(group)
 
     def update_group_with_tasks(self, group):
         data_list = []
