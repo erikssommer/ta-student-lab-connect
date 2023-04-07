@@ -33,6 +33,7 @@ MQTT_TOPIC_TA = 'ttm4115/project/team10/api/v1/ta'
 class TaClientComponent:
 
     def set_topics(self):
+        # Set the topics for the specific TA
         self.MQTT_TOPIC_TA = MQTT_TOPIC_TA + "/" + self.ta_mqtt_endpoint
 
     def subscribe_topics(self):
@@ -98,9 +99,14 @@ class TaClientComponent:
             self.handle_ta_update_tables(header, body)
 
     def publish_message(self, topic, message):
+        """Publish a message to the MQTT broker.
+
+        Args:
+            topic (str): The topic to publish to.
+            message (str): The message to publish.
+        """
         payload = json.dumps(message)
-        self._logger.debug(
-            'Publishing message to topic {}: {}'.format(topic, payload))
+        self._logger.debug(f'Publishing message to topic {topic}: {payload}')
         self.mqtt_client.publish(topic, payload, qos=2)
 
     # MQTT message creation logic
@@ -120,12 +126,11 @@ class TaClientComponent:
     def __init__(self, logger):
         # get the logger object for the component
         self._logger: logging.Logger = logger
-        print('logging under name {}.'.format(__name__))
+        print(f'logging under name {__name__}.')
         self._logger.info('Starting Component')
 
         # create a new MQTT client
-        self._logger.debug(
-            'Connecting to MQTT broker {} at port {}'.format(MQTT_BROKER, MQTT_PORT))
+        self._logger.debug(f'Connecting to MQTT broker {MQTT_BROKER} at port {MQTT_PORT}')
         self.mqtt_client = mqtt.Client()
         # callback methods
         self.mqtt_client.on_connect = self.on_connect
@@ -148,6 +153,7 @@ class TaClientComponent:
 
         self._logger.debug('Component initialization finished')
 
+        # Tracking if the tasks have been submitted (to avoid multiple submissions)
         self.tasks_submitted = False
 
         # Can only update tables once
@@ -254,10 +260,11 @@ class TaClientComponent:
     def submit_name(self):
         name = self.app.getEntry("Your name:")
 
+        # Basic error handling for ensuring that the TA enters a name that can be used identifing the TA
         if name == "":
             self.app.errorBox("Error", "Please enter a name")
             return
-        
+
         if name.isalpha() == False:
             self.app.errorBox("Error", "Please enter a name with only letters")
             return
@@ -293,6 +300,7 @@ class TaClientComponent:
         self.app.stop()
 
     def show_instructions(self):
+        """ Show instructions for the TA """
         self.app.infoBox(title="Instructions",
                          message="Assign tasks to the students by filling in the description and duration of the task. \
                             The duration must be a number. \
@@ -368,6 +376,7 @@ class TaClientComponent:
         self.stm_driver.send('help_group', self.ta_name)
 
     def notify_other_tas_getting_help(self, data, row):
+        # Create the body of the payload
         body = {
             "group": data[0],
             "description": data[1],
@@ -571,6 +580,7 @@ class TaClientComponent:
         # Send the tasks to the other TAs
         self.publish_message(MQTT_TOPIC_TA_UPDATE, payload)
 
+        # Change the status of the tasks to submitted
         self.tasks_submitted = True
 
     def handle_ta_update_tasks(self, header, body):
@@ -622,6 +632,7 @@ class TaClientComponent:
         if header == self.ta_name:
             return
 
+        # Get the data from the tables
         assigned_tasks, groups_request_help, groups_getting_help, group_status = [], [], [], []
 
         if self.app.getTableRowCount("assigned_tasks") != 0 and self.tasks_submitted:
@@ -648,6 +659,7 @@ class TaClientComponent:
                 and len(groups_getting_help) == 0 and len(group_status) == 0:
             return
 
+        # Create the body of the payload
         body = {
             "assigned_tasks": assigned_tasks,
             "groups_request_help": groups_request_help,
@@ -667,7 +679,7 @@ class TaClientComponent:
         # Only update the tables once
         if self.update_tabels:
             return
-        
+
         self.update_tabels = True
 
         # Test if there are any tasks
@@ -676,29 +688,29 @@ class TaClientComponent:
                 "The tasks have already been submitted. Can only submitt tasks once")
             return
 
-        # Add the tasks to the table
+        # Update the table of assigned tasks
         if self.app.getTableRowCount("assigned_tasks") == 0:
             for item in body['assigned_tasks']:
                 self.app.addTableRow("assigned_tasks", [
-                                    item[0], item[1]])
-                
-        # Add the groups to the table
+                    item[0], item[1]])
+
+        # Update the groups requesting help
         if self.app.getTableRowCount("groups_request_help") == 0:
             for item in body['groups_request_help']:
                 self.app.addTableRow("groups_request_help", [
-                                    item[0], item[1], item[2]])
+                    item[0], item[1], item[2]])
 
-        # Add the groups to the table
+        # Update the table of groups getting help
         if self.app.getTableRowCount("groups_getting_help") == 0:
             for item in body['groups_getting_help']:
                 self.app.addTableRow("groups_getting_help", [
-                                    item[0], item[1], item[2], item[3]])
+                    item[0], item[1], item[2], item[3]])
 
-        # Add the groups to the table
+        # Update the status of the groups
         if self.app.getTableRowCount("group_status") == 0:
             for item in body['group_status']:
                 self.app.addTableRow("group_status", [
-                                    item[0], item[1]])
+                    item[0], item[1]])
 
     def stop(self):
         """

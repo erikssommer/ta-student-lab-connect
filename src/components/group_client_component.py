@@ -66,21 +66,19 @@ class GroupClientComponent:
 
     def on_connect(self, client, userdata, flags, rc):
         # Only log that we are connected if the connection was successful
-        self._logger.debug('MQTT connected to {}'.format(client))
+        self._logger.debug(f'MQTT connected to {client}')
 
     def on_message(self, client, userdata, msg):
         # Retrieving the topic and payload
         topic = msg.topic
 
-        self._logger.debug('Received message on topic {}, with payload {}'.format(
-            topic, msg.payload))
+        self._logger.debug(f'Received message on topic {topic}, with payload {msg.payload}')
 
         # Unwrap JSON-encoded payload
         try:
             payload = json.loads(msg.payload.decode('utf-8'))
         except json.JSONDecodeError:
-            self._logger.error(
-                'Could not decode JSON from message {}'.format(msg.payload))
+            self._logger.error(f'Could not decode JSON from message {msg.payload}')
             return
 
         # Handle the different topics
@@ -110,8 +108,14 @@ class GroupClientComponent:
             self.stm_driver.send('received_help', self.team_text)
 
     def publish_message(self, topic, message):
+        """Publish a message to the MQTT broker.
+
+        Args:
+            topic (str): The topic to publish to.
+            message (str): The message to publish.
+        """
         payload = json.dumps(message)
-        self._logger.info('Publishing message: {}'.format(payload))
+        self._logger.info(f'Publishing message: {payload}')
         self.mqtt_client.publish(topic, payload=payload, qos=2)
 
     # MQTT message creation logic
@@ -149,8 +153,7 @@ class GroupClientComponent:
         self._logger.info('Starting Component')
 
         # create a new MQTT client
-        self._logger.debug(
-            'Connecting to MQTT broker {} at port {}'.format(MQTT_BROKER, MQTT_PORT))
+        self._logger.debug(f'Connecting to MQTT broker {MQTT_BROKER} at port {MQTT_PORT}')
         self.mqtt_client = mqtt.Client()
         # callback methods
         self.mqtt_client.on_connect = self.on_connect
