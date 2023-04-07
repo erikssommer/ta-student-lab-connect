@@ -98,6 +98,8 @@ class GroupClientComponent:
         if topic == self.MQTT_TOPIC_GETTING_HELP:
             # Update the queue number label to inform the user that they are getting help
             self.app.setLabel("queue_number_label", "Getting help!")
+
+            self.app.setLabel("Request feedback", "")
             # Change state to "receive_help"
             self.stm_driver.send('receive_help', self.team_text)
 
