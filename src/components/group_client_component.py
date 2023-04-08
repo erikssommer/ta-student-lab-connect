@@ -109,6 +109,9 @@ class GroupClientComponent:
             # Change state to "receive_help"
             self.stm_driver.send('received_help', self.team_text)
 
+            # Set the requesting help flag to false
+            self.requesting_help = False
+
     def publish_message(self, topic, message):
         """Publish a message to the MQTT broker.
 
@@ -147,8 +150,6 @@ class GroupClientComponent:
         self.app.setImage("light", light)
 
     def __init__(self, logger):
-        self.queue_number = 0
-
         # get the logger object for the component
         self._logger: logging.Logger = logger
         print('logging under name {}.'.format(__name__))
@@ -185,8 +186,13 @@ class GroupClientComponent:
         # Set the initial image path
         self.image_path = "../assets/green_off.gif"
 
+        # Set the initial queue number
+        self.queue_number = 0
+
         # Can only update tasks once
         self.update_tasks = False
+
+        self.requesting_help = False
 
         # Settup the GUI
         self.setup_gui()
@@ -369,6 +375,12 @@ class GroupClientComponent:
         self.create_status_light_stm(durations=duration_list)
 
     def on_request_help(self):
+        """ Send a help request to the TAs """
+
+        if self.requesting_help:
+            self.app.popUp("Error", "You are already requesting help.", kind="error")
+            return
+        
         help_request = self.app.getEntry("Description:")
         # Test if the help request is empty
         if help_request == "":
@@ -399,6 +411,9 @@ class GroupClientComponent:
 
             # Change state to "waiting_for_help"
             self.stm_driver.send("request_help", self.team_text)
+
+            # Set the requesting help flag to true
+            self.requesting_help = True
 
         except Exception as e:
             self.app.popUp("Error", e, kind="error")
