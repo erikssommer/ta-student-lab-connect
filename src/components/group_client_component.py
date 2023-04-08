@@ -392,7 +392,6 @@ class GroupClientComponent:
             # Create the help request message
             help_request = [self.team_text, help_request,
                             datetime.now().strftime('%H:%M:%S')]
-            body = []
 
             task_dict = {
                 "group": help_request[0],
@@ -400,10 +399,8 @@ class GroupClientComponent:
                 "time": help_request[2]
             }
 
-            body.append(task_dict)
-
             payload = self.create_payload(
-                command="request_help", header=self.team_mqtt_endpoint, body=body)
+                command="request_help", header=self.team_mqtt_endpoint, body=task_dict)
 
             self.publish_message(self.MQTT_TOPIC_REQUEST_HELP, payload)
             self.app.setLabel("Request feedback", "Request successfully sent!")
@@ -450,7 +447,7 @@ class GroupClientComponent:
                     self.app.replaceTableRow("table_tasks", row + 1, data)
 
                 # Report the task as done to the TAs
-                body = [{"group": self.team_text, "current_task": data[0]}]
+                body = {"group": self.team_text, "current_task": data[0]}
 
                 payload = self.create_payload(
                     command="report_current_task", header=self.team_mqtt_endpoint, body=body)
@@ -470,7 +467,7 @@ class GroupClientComponent:
             self.stm_driver.send('tasks_done', self.team_text)
 
             # Report the task as done to the TAs
-            body = [{"group": self.team_text}]
+            body = {"group": self.team_text}
 
             payload = self.create_payload(
                 command="tasks_done", header=self.team_mqtt_endpoint, body=body)

@@ -318,14 +318,14 @@ class TaClientComponent:
     def handle_request_help(self, header, body):
         # If group already in table, remove it
         for row in range(self.app.getTableRowCount("groups_request_help")):
-            if self.app.getTableRow("groups_request_help", row)[0] == body[0]['group']:
+            if self.app.getTableRow("groups_request_help", row)[0] == body['group']:
                 self.app.deleteTableRow("groups_request_help", row)
                 break
 
         # Get the data from the payload
-        group = body[0]['group']
-        description = body[0]['description']
-        time = body[0]['time']
+        group = body['group']
+        description = body['description']
+        time = body['time']
 
         # Add the data to the table of groups requesting help
         self.app.addTableRow("groups_request_help", [
@@ -404,7 +404,7 @@ class TaClientComponent:
 
     def report_getting_help(self, group):
         # Wrap the group name in a list
-        message = [{"group": group}]
+        message = {"group": group}
 
         mqtt_topic_endpoint = group.lower().replace(" ", "_")
 
@@ -414,7 +414,7 @@ class TaClientComponent:
 
     def report_received_help(self, group):
         # Wrap the group name in a list
-        message = [{"group": group}]
+        message = {"group": group}
 
         mqtt_topic_endpoint = group.lower().replace(" ", "_")
 
@@ -494,7 +494,7 @@ class TaClientComponent:
 
     def handle_group_done(self, header, body):
         # Get the data from the payload
-        group = body[0]['group']
+        group = body['group']
         delete_row = None
 
         # Find the row of the group in the table
@@ -512,8 +512,8 @@ class TaClientComponent:
 
     def handle_group_progress(self, header, body):
         # Get the data from the payload
-        group = body[0]['group']
-        task = body[0]['current_task']
+        group = body['group']
+        task = body['current_task']
         task = f"Task {task} in progress"
         update_row = None
 
