@@ -338,19 +338,11 @@ class TaClientComponent:
         # Log the action
         self._logger.info(
             f"Group {group} requested help with {description} at {time}")
-
-        # Report the queue number to the group
-        self.report_queue_number(header)
-
-    def report_queue_number(self, group):
-        # Get the number of groups in the queue
+        
         queue_number = self.app.getTableRowCount("groups_request_help")
 
-        # Wrap it in a list
-        message = [{"queue_number": f"{queue_number + 1}"}]
-
-        # Send the queue number to the group
-        self.publish_message(MQTT_TOPIC_QUEUE_NUMBER + "/" + group, message)
+        # Report the queue number to the group
+        self.report_queue_number(header, queue_number + 1)
 
     def assign_getting_help(self, row):
         # Get the row of the table
@@ -370,10 +362,31 @@ class TaClientComponent:
         # Report to group that it is getting help
         self.report_getting_help(data[0])
 
+        # Send the new queue number to all the groups
+        self.send_new_queue_number_to_groups()
+
         self.notify_other_tas_getting_help(data, row)
 
         # Change state to "helping_group"
         self.stm_driver.send('help_group', self.ta_name)
+
+    def send_new_queue_number_to_groups(self):
+        for row in range(self.app.getTableRowCount("groups_request_help")):
+            # Get the group name
+            group = self.app.getTableRow("groups_request_help", row)[0]
+
+            # Send the new queue number to the group
+            self.report_queue_number(group, row + 1)
+
+    def report_queue_number(self, group, queue_number):
+        # Wrap the queue number in a list
+        message = {"queue_number": f"{queue_number}"}
+
+        mqtt_topic_endpoint = group.lower().replace(" ", "_")
+
+        # Send the queue number to the group
+        self.publish_message(MQTT_TOPIC_QUEUE_NUMBER +
+                             "/" + mqtt_topic_endpoint, message)
 
     def notify_other_tas_getting_help(self, data, row):
         # Create the body of the payload

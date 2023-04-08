@@ -91,7 +91,7 @@ class GroupClientComponent:
             self.handle_recieve_tasks(payload)
             
         if topic == self.MQTT_TOPIC_QUEUE_NUMBER:
-            self.queue_number = payload[0]['queue_number']
+            self.queue_number = payload['queue_number']
             self.app.setLabel("queue_number_label",
                               f"Number in queue: {self.queue_number}")
 
