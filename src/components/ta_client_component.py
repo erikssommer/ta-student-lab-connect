@@ -208,7 +208,6 @@ class TaClientComponent:
 
         # Add a button to submit the tasks
         self.app.addButton("Submit tasks", self.submit_tasks)
-        self.app.setButtonSticky("Submit tasks", "w")
 
         # Empty label to separate the tables
         self.app.addEmptyLabel("empty_label2")
