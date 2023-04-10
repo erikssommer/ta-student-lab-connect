@@ -102,9 +102,6 @@ class TaClientComponent:
         elif command == "ta_update_tables":
             # Handle the ta update message
             self.handle_ta_update_tables(header, body)
-        elif command == "ta_ready":
-            # Handle the ta ready message
-            self.handle_ta_ready(header, body)
 
     def publish_message(self, topic, message):
         """Publish a message to the MQTT broker.
@@ -320,7 +317,7 @@ class TaClientComponent:
 
     def notify_student_groups_of_ta(self):
         payload = self.create_payload(
-            command="ta_ready", header=self.ta_name, body={})
+            command="ta_present_all", header=self.ta_name, body={})
 
         # Report that TA is ready
         self.publish_message(MQTT_TOPIC_TA_READY_RESPONSE_ALL, payload)
@@ -402,9 +399,11 @@ class TaClientComponent:
 
         mqtt_topic_endpoint = group.lower().replace(" ", "_")
 
+        payload = self.create_payload(command="queue_number", header=self.ta_name, body=message)
+
         # Send the queue number to the group
         self.publish_message(MQTT_TOPIC_QUEUE_NUMBER +
-                             "/" + mqtt_topic_endpoint, message)
+                             "/" + mqtt_topic_endpoint, payload)
 
     def notify_other_tas_getting_help(self, data, row):
         # Create the body of the payload
@@ -427,9 +426,11 @@ class TaClientComponent:
 
         mqtt_topic_endpoint = group.lower().replace(" ", "_")
 
+        payload = self.create_payload(command="getting_help", header=self.ta_name, body=message)
+
         # Send the group name to the group
         self.publish_message(MQTT_TOPIC_GETTING_HELP +
-                             "/" + mqtt_topic_endpoint, message)
+                             "/" + mqtt_topic_endpoint, payload)
 
     def report_received_help(self, group):
         # Wrap the group name in a list
@@ -437,9 +438,11 @@ class TaClientComponent:
 
         mqtt_topic_endpoint = group.lower().replace(" ", "_")
 
+        payload = self.create_payload(command="received_help", header=self.ta_name, body=message)
+
         # Send the group name to the group
         self.publish_message(MQTT_TOPIC_RECEIVED_HELP +
-                             "/" + mqtt_topic_endpoint, message)
+                             "/" + mqtt_topic_endpoint, payload)
 
     def assign_got_help(self, row):
         # Get the row of the table
@@ -470,36 +473,17 @@ class TaClientComponent:
 
         self.publish_message(MQTT_TOPIC_TA_UPDATE, payload)
 
-    def handle_group_present(self, header, body):
-        # Notify the group that the TA is present
-        self.report_ta_present(header)
-
-        # Get the data from the payload
-        group = body['group']
-
-        if self.app.getTableRowCount("assigned_tasks") == 0 and not self.tasks_submitted:
-            self.app.addTableRow(
-                "group_status", [group, "Waiting for TAs to assign tasks..."])
-            return
-
-        status = "Task 1 in progress"
-
-        # Add the data to the table of groups and their status
-        self.app.addTableRow("group_status", [group, status])
-
-        # Send the list of tasks to the group
-        if self.tasks_submitted:
-            self.update_group_with_tasks(group)
-
     def report_ta_present(self, group):
         # Wrap the group name in a list
         message = {"ta": self.ta_name}
 
         mqtt_topic_endpoint = group.lower().replace(" ", "_")
 
+        payload = self.create_payload(command="ta_present", header=self.ta_name, body=message)
+
         # Send the group name to the group
         self.publish_message(MQTT_TOPIC_TA_READY_RESPONSE +
-                             "/" + mqtt_topic_endpoint, message)
+                             "/" + mqtt_topic_endpoint, payload)
 
     def update_group_with_tasks(self, group):
         data_list = []
@@ -520,47 +504,11 @@ class TaClientComponent:
 
         mqtt_topic_endpoint = group.lower().replace(" ", "_")
 
+        payload = self.create_payload(command="submit_tasks_late", header=self.ta_name, body=output_list)
+
         # Send the tasks to the group
         self.publish_message(MQTT_TOPIC_TASKS_LATE + "/" +
-                             mqtt_topic_endpoint, output_list)
-
-    def handle_group_done(self, header, body):
-        # Get the data from the payload
-        group = body['group']
-        delete_row = None
-
-        # Find the row of the group in the table
-        for row in range(self.app.getTableRowCount("group_status")):
-            if self.app.getTableRow("group_status", row)[0] == group:
-                delete_row = row
-                break
-
-        if delete_row is None:
-            self._logger.error(f"Group {group} not found in table")
-            return
-
-        # Remove the row from the table of groups and their status
-        self.app.replaceTableRow("group_status", delete_row, [group, "Done"])
-
-    def handle_group_progress(self, header, body):
-        # Get the data from the payload
-        group = body['group']
-        task = body['current_task']
-        task = f"Task {task} in progress"
-        update_row = None
-
-        # Find the row of the group in the table
-        for row in range(self.app.getTableRowCount("group_status")):
-            if self.app.getTableRow("group_status", row)[0] == group:
-                update_row = row
-                break
-
-        if update_row is None:
-            self._logger.error(f"Group {group} not found in table")
-            return
-
-        # Update the row from the table of groups and their status
-        self.app.replaceTableRow("group_status", update_row, [group, task])
+                             mqtt_topic_endpoint, payload)
 
     def add_task(self):
         data_list = self.app.getTableEntries("assigned_tasks")
@@ -621,8 +569,10 @@ class TaClientComponent:
             data[1] = "Task 1 in progress"
             self.app.replaceTableRow("group_status", row, data)
 
+        payload = self.create_payload(command="submit_tasks", header=self.ta_name, body=output_list)
+
         # Publish the tasks to the MQTT broker
-        self.publish_message(MQTT_TOPIC_TASKS, output_list)
+        self.publish_message(MQTT_TOPIC_TASKS, payload)
 
         payload = self.create_payload(
             command="ta_update_tasks", header=self.ta_name, body=output_list)
@@ -632,6 +582,67 @@ class TaClientComponent:
 
         # Change the status of the tasks to submitted
         self.tasks_submitted = True
+
+    def handle_group_present(self, header, body):
+        # Notify the group that the TA is present
+        self.report_ta_present(header)
+
+        # Get the data from the payload
+        group = body['group']
+
+        if self.app.getTableRowCount("assigned_tasks") == 0 and not self.tasks_submitted:
+            self.app.addTableRow(
+                "group_status", [group, "Waiting for TAs to assign tasks..."])
+            return
+
+        status = "Task 1 in progress"
+
+        # Add the data to the table of groups and their status
+        self.app.addTableRow("group_status", [group, status])
+
+        # Send the list of tasks to the group
+        if self.tasks_submitted:
+            self.update_group_with_tasks(group)
+
+    def handle_group_done(self, header, body):
+        # Get the data from the payload
+        group = body['group']
+        delete_row = None
+
+        # Find the row of the group in the table
+        for row in range(self.app.getTableRowCount("group_status")):
+            if self.app.getTableRow("group_status", row)[0] == group:
+                delete_row = row
+                break
+
+        if delete_row is None:
+            self._logger.error(f"Group {group} not found in table")
+            return
+
+        # Remove the row from the table of groups and their status
+        self.app.replaceTableRow("group_status", delete_row, [group, "Done"])
+
+    # Handle request methods
+
+    def handle_group_progress(self, header, body):
+        # Get the data from the payload
+        group = body['group']
+        task = body['current_task']
+        task = f"Task {task} in progress"
+        update_row = None
+
+        # Find the row of the group in the table
+        for row in range(self.app.getTableRowCount("group_status")):
+            if self.app.getTableRow("group_status", row)[0] == group:
+                update_row = row
+                break
+
+        if update_row is None:
+            self._logger.error(f"Group {group} not found in table")
+            return
+
+        # Update the row from the table of groups and their status
+        self.app.replaceTableRow("group_status", update_row, [group, task])
 
     def handle_ta_update_tasks(self, header, body):
         # Testing if the message is from the same TA then do nothing
@@ -765,12 +776,6 @@ class TaClientComponent:
             for item in body['group_status']:
                 self.app.addTableRow("group_status", [
                     item[0], item[1]])
-
-    def handle_ta_ready(self, header, body):
-        # Send the response to the group
-        payload = self.create_payload(
-            command="ta_ready", header=self.ta_name, body={})
-        self.publish_message(MQTT_TOPIC_TA_READY_RESPONSE, payload)
 
     def stop(self):
         """
