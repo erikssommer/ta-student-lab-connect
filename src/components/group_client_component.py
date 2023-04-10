@@ -94,45 +94,43 @@ class GroupClientComponent:
                 f'Could not decode JSON from message {msg.payload}')
             return
 
+        # Get the payload attributes
+        command = payload.get('command')
+        header = payload.get('header')
+        body = payload.get('body')
+
         # Handle the different topics
-        if topic == self.MQTT_TOPIC_TASKS:
+        if command == "submit_tasks":
             # Update the listbox with the tasks
-            self.handle_recieve_tasks(payload)
+            self.handle_recieve_tasks(body)
 
-        if topic == self.MQTT_TOPIC_TASKS_LATE:
+        if command == "submit_tasks_late":
             # Update the listbox with the late tasks
-            self.handle_recieve_tasks(payload)
+            self.handle_recieve_tasks(body)
 
-        if topic == self.MQTT_TOPIC_QUEUE_NUMBER:
-            self.queue_number = payload['queue_number']
-            self.app.setLabel("queue_number_label",
-                              f"Number in queue: {self.queue_number}")
+        if command == "queue_number":
+            self.handle_update_queue_number(body)
 
-        if topic == self.MQTT_TOPIC_GETTING_HELP:
-            # Update the queue number label to inform the user that they are getting help
-            self.app.setLabel("queue_number_label", "Getting help!")
+        if command == "getting_help":
+            self.handle_getting_help(body)
 
-            self.app.setLabel("Request feedback", "")
             # Change state to "receive_help"
             self.stm_driver.send('receive_help', self.team_text)
 
-        if topic == self.MQTT_TOPIC_RECEIVED_HELP:
-            # Update the queue number label to inform the user that they have received help
-            self.app.setLabel("queue_number_label", "Received help!")
+        if command == "received_help":
+            self.handle_received_help(body)
+
             # Change state to "receive_help"
             self.stm_driver.send('received_help', self.team_text)
 
-            # Set the requesting help flag to false
-            self.requesting_help = False
-
-        if topic == self.MQTT_TOPIC_TA_READY_RESPONSE:
+        if command == "ta_present":
             # Handle that the TA is ready
             if self.ta_connected == False:
                 logging.info("TA is ready")
                 self.ta_connected = True
                 self.app.setLabel("TA_status_label", "")
 
-        if topic == self.MQTT_TOPIC_TA_READY_RESPONSE_ALL:
+        if command == "ta_present_all":
             # Handle that a TA is ready
             if self.ta_connected == False:
                 logging.info("TA is ready")
@@ -359,7 +357,7 @@ class GroupClientComponent:
 
         # Start the group state machine
         self.create_group_stm()
-        
+
         # Wait for the TAs to respond on connect
         time.sleep(0.2)
 
@@ -381,46 +379,6 @@ class GroupClientComponent:
                          When you are ready to request help, enter a description of the help you need in the text \
                           field below and click the 'Request Help' button. The TAs will then come to your group and \
                           help you with your tasks. Good luck!")
-        
-    def handle_group_present(self):
-        body = {
-            "group": self.team_text
-        }
-
-        payload = self.create_payload(
-            command="group_present", header=self.team_mqtt_endpoint, body=body)
-
-        # Notify the TAs that the group is ready
-        self.publish_message(self.MQTT_TOPIC_GROUP_PRESENT, payload)
-        
-    def handle_recieve_tasks(self, payload):
-        # Only update the tasks once
-        if self.update_tasks:
-            return
-        
-        self.update_tasks = True
-
-        # Check if the group already is assigned tasks
-        if self.app.getTableRowCount("table_tasks") > 0:
-            self._logger.debug(
-                'Already have tasks, not updating the listbox')
-            return
-        self.app.setLabel("listbox_tasks_label", "")
-        # Keep track of the task durations for the status light stm
-        duration_list = []
-        # Populate the listbox with tasks
-        for i, task in enumerate(payload):
-            # set the status for the first row to "in progress"
-            if i == 0:
-                status = "In progress"
-            else:
-                status = "Not done"
-            self.app.addTableRow(
-                "table_tasks", [task['task'], task['description'], task['duration'], status])
-            duration_list.append(task['duration'])
-        # Cange state to "working on task"
-        self.stm_driver.send('task_start', self.team_text)
-        self.create_status_light_stm(durations=duration_list)
 
     def on_request_help(self):
         """ Send a help request to the TAs """
@@ -530,6 +488,65 @@ class GroupClientComponent:
 
             # Change state to "tasks_done"
             self.stm_driver.send("tasks_done", self.team_text)
+
+    # Handle request methods
+
+    def handle_group_present(self):
+        body = {
+            "group": self.team_text
+        }
+
+        payload = self.create_payload(
+            command="group_present", header=self.team_mqtt_endpoint, body=body)
+
+        # Notify the TAs that the group is ready
+        self.publish_message(self.MQTT_TOPIC_GROUP_PRESENT, payload)
+
+    def handle_recieve_tasks(self, payload):
+        # Only update the tasks once
+        if self.update_tasks:
+            return
+
+        self.update_tasks = True
+
+        # Check if the group already is assigned tasks
+        if self.app.getTableRowCount("table_tasks") > 0:
+            self._logger.debug(
+                'Already have tasks, not updating the listbox')
+            return
+        self.app.setLabel("listbox_tasks_label", "")
+        # Keep track of the task durations for the status light stm
+        duration_list = []
+        # Populate the listbox with tasks
+        for i, task in enumerate(payload):
+            # set the status for the first row to "in progress"
+            if i == 0:
+                status = "In progress"
+            else:
+                status = "Not done"
+            self.app.addTableRow(
+                "table_tasks", [task['task'], task['description'], task['duration'], status])
+            duration_list.append(task['duration'])
+        # Cange state to "working on task"
+        self.stm_driver.send('task_start', self.team_text)
+        self.create_status_light_stm(durations=duration_list)
+
+    def handle_update_queue_number(self, body):
+        self.queue_number = body['queue_number']
+        self.app.setLabel("queue_number_label",
+                          f"Number in queue: {self.queue_number}")
+
+    def handle_getting_help(self, body):
+        # Update the queue number label to inform the user that they are getting help
+        self.app.setLabel("queue_number_label", "Getting help!")
+
+        self.app.setLabel("Request feedback", "")
+
+    def handle_received_help(self, body):
+        # Update the queue number label to inform the user that they have received help
+        self.app.setLabel("queue_number_label", "Received help!")
+        # Set the requesting help flag to false
+        self.requesting_help = False
 
     def stop(self):
         """
