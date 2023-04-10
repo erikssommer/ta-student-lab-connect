@@ -99,14 +99,20 @@ class GroupClientComponent:
         header = payload.get('header')
         body = payload.get('body')
 
-        # Handle the different topics
+        # Handle the different commands
         if command == "submit_tasks":
             # Update the listbox with the tasks
             self.handle_recieve_tasks(body)
 
+            # Cange state to "working on task"
+            self.stm_driver.send('task_start', self.team_text)
+
         if command == "submit_tasks_late":
             # Update the listbox with the late tasks
             self.handle_recieve_tasks(body)
+
+            # Cange state to "working on task"
+            self.stm_driver.send('task_start', self.team_text)
 
         if command == "queue_number":
             self.handle_update_queue_number(body)
@@ -527,8 +533,7 @@ class GroupClientComponent:
             self.app.addTableRow(
                 "table_tasks", [task['task'], task['description'], task['duration'], status])
             duration_list.append(task['duration'])
-        # Cange state to "working on task"
-        self.stm_driver.send('task_start', self.team_text)
+
         self.create_status_light_stm(durations=duration_list)
 
     def handle_update_queue_number(self, body):

@@ -56,8 +56,10 @@ class TaClientComponent:
         self._logger.debug(f'MQTT connected to {client}')
 
     def on_message(self, client, userdata, msg):
+        # Get the topic
+        topic = msg.topic
         # Log the message received
-        self._logger.debug(f'MQTT received message: {msg.payload}')
+        self._logger.debug(f'MQTT received message on topic {topic}, with payload {msg.payload}')
 
         # Unwrap the message
         try:
