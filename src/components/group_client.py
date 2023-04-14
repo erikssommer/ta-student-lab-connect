@@ -1,1 +1,0 @@
-# Group client component
