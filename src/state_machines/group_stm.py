@@ -2,8 +2,6 @@
 import stmpy
 import logging
 
-MQTT_TOPIC_INPUT = 'input'
-
 class GroupLogic:
     """ State machine for a group client """
     def __init__(self, name, component, logger):
@@ -54,8 +52,3 @@ class GroupLogic:
     def finished(self):
         self._logger.info('Group {} finished'.format(self.name))
         self.stm.terminate()
-
-    def report_status(self, status):
-        self._logger.info('Group {} reported status {}'.format(self.name, status))
-        message = {'group': self.name, 'status': status}
-        self.component.mqtt_client.publish_message(MQTT_TOPIC_INPUT, message)
