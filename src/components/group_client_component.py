@@ -8,7 +8,7 @@ from state_machines.group_stm import GroupLogic
 import logging
 import time
 
-from mqtt_handlers.mqtt_group import MqttGroup
+from mqtt_clients.mqtt_group_client import MqttGroupClient
 
 # Number of teams able to connect to the system
 NR_OF_TEAMS = 20
@@ -45,15 +45,15 @@ class GroupClientComponent:
         self._logger.info('Starting Component')
 
         # Create the MQTT handler
-        self.mqtt_handler = MqttGroup(self, logger)
+        self.mqtt_group_client = MqttGroupClient(self, logger)
 
         # Start the MQTT client in a separate thread to avoid blocking
         try:
-            thread = Thread(target=self.mqtt_handler.mqtt_client.loop_start())
+            thread = Thread(target=self.mqtt_group_client.mqtt_client.loop_start())
             thread.start()
         except KeyboardInterrupt:
             print("Interrupted")
-            self.mqtt_handler.mqtt_client.disconnect()
+            self.mqtt_group_client.mqtt_client.disconnect()
 
         # Setting up the drivers for the state machines
         # Start the stmpy driver for the group component, without any state machines for now
@@ -187,10 +187,10 @@ class GroupClientComponent:
 
         self.team_text = message
 
-        self.mqtt_handler.team_text = self.team_text
+        self.mqtt_group_client.team_text = self.team_text
 
         # Team text to lower case and remove spaces
-        self.mqtt_handler.team_mqtt_endpoint = self.team_text.lower().replace(" ", "_")
+        self.mqtt_group_client.team_mqtt_endpoint = self.team_text.lower().replace(" ", "_")
 
         # Close the popup window
         self.app.hideSubWindow("Enter Group Number")
@@ -202,12 +202,12 @@ class GroupClientComponent:
         self._logger.info(f'Team number: {self.team_text}')
 
         # Create the topics for the group
-        self.mqtt_handler.set_topics()
+        self.mqtt_group_client.set_topics()
 
         # Subscribe to the topic for the group
-        self.mqtt_handler.subscribe_topics()
+        self.mqtt_group_client.subscribe_topics()
 
-        self.mqtt_handler.handle_group_present()
+        self.mqtt_group_client.handle_group_present()
 
         # Start the group state machine
         self.create_group_stm()
@@ -265,7 +265,7 @@ class GroupClientComponent:
                 "time": help_request[2]
             }
 
-            self.mqtt_handler.handle_request_help(task_dict)
+            self.mqtt_group_client.handle_request_help(task_dict)
 
             self.app.setLabel("Request feedback", "Request successfully sent!")
             self.app.setLabelFg("Request feedback", "green")
@@ -313,7 +313,7 @@ class GroupClientComponent:
                 # Report the task as done to the TAs
                 body = {"group": self.team_text, "current_task": data[0]}
 
-                self.mqtt_handler.handle_task_done(body)
+                self.mqtt_group_client.handle_task_done(body)
 
                 break
 
@@ -326,7 +326,7 @@ class GroupClientComponent:
             # Report the task as done to the TAs
             body = {"group": self.team_text}
 
-            self.mqtt_handler.handle_all_tasks_done(body)
+            self.mqtt_group_client.handle_all_tasks_done(body)
 
             # Change state to "tasks_done"
             self.stm_driver.send("tasks_done", self.team_text)
@@ -400,14 +400,14 @@ class GroupClientComponent:
             self.app.setLabel("TA_status_label", "")
 
             if all:
-                self.mqtt_handler.handle_group_present()
+                self.mqtt_group_client.handle_group_present()
 
     def stop(self):
         """
         Stop the component.
         """
         # stop the MQTT client
-        self.mqtt_handler.mqtt_client.loop_stop()
+        self.mqtt_group_client.mqtt_client.loop_stop()
 
         # stop the stmpy drivers
         self.stm_driver.stop()

@@ -4,7 +4,7 @@ from appJar import gui
 from datetime import datetime
 import logging
 from state_machines.ta_stm import TaLogic
-from mqtt_handlers.mqtt_ta import MqttTa
+from mqtt_clients.mqtt_ta_client import MqttTaClient
 
 # TA client component
 
@@ -26,15 +26,15 @@ class TaClientComponent:
         self._logger.info('Starting Component')
 
         # Create the MQTT handler
-        self.mqtt_handler = MqttTa(self, logger)
+        self.mqtt_ta_client = MqttTaClient(self, logger)
 
         # Start the MQTT client in a separate thread to avoid blocking
         try:
-            thread = Thread(target=self.mqtt_handler.mqtt_client.loop_start())
+            thread = Thread(target=self.mqtt_ta_client.mqtt_client.loop_start())
             thread.start()
         except KeyboardInterrupt:
             print("Interrupted")
-            self.mqtt_handler.mqtt_client.disconnect()
+            self.mqtt_ta_client.mqtt_client.disconnect()
 
         # Start the stmpy driver, without any state machines for now
         self.stm_driver = stmpy.Driver()
@@ -161,9 +161,9 @@ class TaClientComponent:
         self.ta_name = name
 
         # Set the endpont for the TA
-        self.mqtt_handler.ta_mqtt_endpoint = self.ta_name.lower().replace(" ", "_")
+        self.mqtt_ta_client.ta_mqtt_endpoint = self.ta_name.lower().replace(" ", "_")
 
-        self.mqtt_handler.ta_name = self.ta_name
+        self.mqtt_ta_client.ta_name = self.ta_name
 
         self.app.hideSubWindow("Enter TA name")
 
@@ -171,16 +171,16 @@ class TaClientComponent:
         self.app.setLabel("upper_right_label", f"TA name: {name}")
 
         # Set the topics specific for the TA
-        self.mqtt_handler.set_topics()
+        self.mqtt_ta_client.set_topics()
 
         # Subscribe to the topics
-        self.mqtt_handler.subscribe_topics()
+        self.mqtt_ta_client.subscribe_topics()
 
         # Request the tables to be updated for a late joiner
-        self.mqtt_handler.request_update_of_tables()
+        self.mqtt_ta_client.request_update_of_tables()
 
         # Notify the student groups of the TA joining
-        self.mqtt_handler.notify_student_groups_of_ta()
+        self.mqtt_ta_client.notify_student_groups_of_ta()
 
         # Create the ta state machine
         self.create_ta_stm()
@@ -226,7 +226,7 @@ class TaClientComponent:
         queue_number = self.app.getTableRowCount("groups_request_help")
 
         # Report the queue number to the group
-        self.mqtt_handler.report_queue_number(header, queue_number + 1)
+        self.mqtt_ta_client.report_queue_number(header, queue_number + 1)
 
     def assign_getting_help(self, row):
         # Get the row of the table
@@ -244,7 +244,7 @@ class TaClientComponent:
         self._logger.info(f"Group {data[0]} is getting help")
 
         # Report to group that it is getting help
-        self.mqtt_handler.report_getting_help(data[0])
+        self.mqtt_ta_client.report_getting_help(data[0])
 
         # Send the new queue number to all the groups
         self.send_new_queue_number_to_groups()
@@ -260,7 +260,7 @@ class TaClientComponent:
             group = self.app.getTableRow("groups_request_help", row)[0]
 
             # Send the new queue number to the group
-            self.mqtt_handler.report_queue_number(group, row + 1)
+            self.mqtt_ta_client.report_queue_number(group, row + 1)
 
     def notify_other_tas_getting_help(self, data, row):
         # Create the body of the payload
@@ -272,7 +272,7 @@ class TaClientComponent:
             "row": row
         }
 
-        self.mqtt_handler.notify_other_tas_getting_help(body)
+        self.mqtt_ta_client.notify_other_tas_getting_help(body)
 
     def assign_got_help(self, row):
         # Get the row of the table
@@ -284,10 +284,10 @@ class TaClientComponent:
         self._logger.info(f"Group {data[0]} got help")
 
         # Report to group that it got help
-        self.mqtt_handler.report_received_help(data[0])
+        self.mqtt_ta_client.report_received_help(data[0])
 
         # Notify other TAs that the group got help
-        self.mqtt_handler.notify_other_tas_got_help(row)
+        self.mqtt_ta_client.notify_other_tas_got_help(row)
 
         # Change state to "not_helping_group"
         self.stm_driver.send('help_recieved', self.ta_name)
@@ -310,7 +310,7 @@ class TaClientComponent:
             output_list.append(task_dict)
 
         # Send the list of tasks to the group
-        self.mqtt_handler.send_tasks_to_group(group, output_list)
+        self.mqtt_ta_client.send_tasks_to_group(group, output_list)
 
     def add_task(self):
         data_list = self.app.getTableEntries("assigned_tasks")
@@ -372,16 +372,16 @@ class TaClientComponent:
             self.app.replaceTableRow("group_status", row, data)
 
         # Send the list of tasks to the groups
-        self.mqtt_handler.submit_tasks_to_groups(output_list)
+        self.mqtt_ta_client.submit_tasks_to_groups(output_list)
         # Send the list of tasks to the TAs
-        self.mqtt_handler.submit_tasks_to_tas(output_list)
+        self.mqtt_ta_client.submit_tasks_to_tas(output_list)
 
         # Change the status of the tasks to submitted
         self.tasks_submitted = True
 
     def handle_group_present(self, header, body):
         # Notify the group that the TA is present
-        self.mqtt_handler.report_ta_present(header)
+        self.mqtt_ta_client.report_ta_present(header)
 
         # Get the data from the payload
         group = body['group']
@@ -525,7 +525,7 @@ class TaClientComponent:
         }
 
         # Send the tables to the TA requesting the update
-        self.mqtt_handler.send_tables_to_ta(header, body)
+        self.mqtt_ta_client.send_tables_to_ta(header, body)
 
     def handle_ta_update_tables(self, header, body):
         # Only update the tables once
@@ -573,7 +573,7 @@ class TaClientComponent:
         Stop the component.
         """
         # stop the MQTT client
-        self.mqtt_handler.mqtt_client.loop_stop()
+        self.mqtt_ta_client.mqtt_client.loop_stop()
 
         # stop the stmpy drivers
         self.stm_driver.stop()

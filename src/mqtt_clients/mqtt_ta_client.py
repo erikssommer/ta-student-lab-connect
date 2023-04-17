@@ -26,7 +26,7 @@ MQTT_TOPIC_TA_READY_REQUEST = 'ttm4115/project/team10/api/v1/ta_ready/request'
 MQTT_TOPIC_TA_READY_RESPONSE = 'ttm4115/project/team10/api/v1/ta_ready/response'
 MQTT_TOPIC_TA_READY_RESPONSE_ALL = 'ttm4115/project/team10/api/v1/ta_ready/response/all'
 
-class MqttTa:
+class MqttTaClient:
     def set_topics(self):
         # Set the topics for the specific TA
         self.MQTT_TOPIC_TA = MQTT_TOPIC_TA + "/" + self.ta_mqtt_endpoint

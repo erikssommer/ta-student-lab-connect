@@ -24,7 +24,7 @@ MQTT_TOPIC_TA_READY_RESPONSE = 'ttm4115/project/team10/api/v1/ta_ready/response'
 MQTT_TOPIC_TA_READY_RESPONSE_ALL = 'ttm4115/project/team10/api/v1/ta_ready/response/all'
 
 
-class MqttGroup:
+class MqttGroupClient:
 
     def __init__(self, component, logger):
         # Setting the reference to the component
