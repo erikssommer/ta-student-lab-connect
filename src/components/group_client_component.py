@@ -32,11 +32,6 @@ class GroupClientComponent:
         # Add the state machine to the driver
         self.stm_driver.add_machine(group_stm)
 
-    # Method called by the state machines
-    def set_status_light(self, light):
-        """ Set the status light """
-        self.app.setImage("light", light)
-
     def __init__(self, logger):
         # get the logger object for the component
         self._logger: logging.Logger = logger
@@ -234,52 +229,8 @@ class GroupClientComponent:
                           help you with your tasks. Good luck!")
 
     def on_request_help(self):
-        """ Send a help request to the TAs """
-
-        if self.ta_connected == False:
-            self.app.popUp(
-                "Error", "There are no TAs online. Wait for them to connect before requesting help", kind="error")
-            return
-
-        if self.requesting_help:
-            self.app.popUp(
-                "Error", "You are already requesting help.", kind="error")
-            return
-
-        help_request = self.app.getEntry("Description:")
-        # Test if the help request is empty
-        if help_request == "":
-            self.app.popUp(
-                "Error", "Please enter a description of the help you need", kind="error")
-            return
-        self.app.clearEntry("Description:")
-        try:
-            # Create the help request message
-            help_request = [self.team_text, help_request,
-                            datetime.now().strftime('%H:%M:%S')]
-
-            task_dict = {
-                "group": help_request[0],
-                "description": help_request[1],
-                "time": help_request[2]
-            }
-
-            self.group_mqtt_client.handle_request_help(task_dict)
-
-            self.app.setLabel("Request feedback", "Request successfully sent!")
-            self.app.setLabelFg("Request feedback", "green")
-
-            # Change state to "waiting_for_help"
-            self.stm_driver.send("request_help", self.team_text)
-
-            # Set the requesting help flag to true
-            self.requesting_help = True
-
-        except Exception as e:
-            self.app.popUp("Error", e, kind="error")
-            self.app.setLabel("Request feedback", "Request failed!")
-            self.app.setLabelFg("Request feedback", "red")
-            return
+        # Change state to "waiting_for_help"
+        self.stm_driver.send("request_help", self.team_text)
 
     def update_queue_number(self):
         """ Update the queue number """
@@ -337,6 +288,14 @@ class GroupClientComponent:
 
     # Handle request methods
 
+    def handle_getting_help(self, body):
+        # Change state to "receive_help"
+        self.stm_driver.send('receive_help', self.team_text)
+
+    def handle_received_help(self, body):
+        # Change state to "receive_help"
+        self.stm_driver.send('received_help', self.team_text)
+
     def handle_recieve_tasks(self, payload):
         # Only update the tasks once
         if self.update_tasks:
@@ -372,24 +331,6 @@ class GroupClientComponent:
         self.queue_number = body['queue_number']
         self.app.setLabel("queue_number_label",
                           f"Number in queue: {self.queue_number}")
-
-    def handle_getting_help(self, body):
-        # Update the queue number label to inform the user that they are getting help
-        self.app.setLabel("queue_number_label", "Getting help!")
-
-        self.app.setLabel("Request feedback", "")
-
-        # Change state to "receive_help"
-        self.stm_driver.send('receive_help', self.team_text)
-
-    def handle_received_help(self, body):
-        # Update the queue number label to inform the user that they have received help
-        self.app.setLabel("queue_number_label", "Received help!")
-        # Set the requesting help flag to false
-        self.requesting_help = False
-
-        # Change state to "receive_help"
-        self.stm_driver.send('received_help', self.team_text)
     
     def handle_ta_present(self, all=False):
         # Handle that the TA is ready
@@ -400,6 +341,68 @@ class GroupClientComponent:
 
             if all:
                 self.group_mqtt_client.handle_group_present()
+
+    # Methods called by the state machines to change the GUI state
+    def set_status_light(self, light):
+        """ Set the status light """
+        self.app.setImage("light", light)
+    
+    def receiving_help(self):
+        # Update the queue number label to inform the user that they are getting help
+        self.app.setLabel("queue_number_label", "Getting help!")
+
+        self.app.setLabel("Request feedback", "")
+
+    def received_help(self):
+        # Update the queue number label to inform the user that they have received help
+        self.app.setLabel("queue_number_label", "Received help!")
+        # Set the requesting help flag to false
+        self.requesting_help = False
+
+    def request_help(self):
+        """ Send a help request to the TAs """
+
+        if self.ta_connected == False:
+            self.app.popUp(
+                "Error", "There are no TAs online. Wait for them to connect before requesting help", kind="error")
+            return
+
+        if self.requesting_help:
+            self.app.popUp(
+                "Error", "You are already requesting help.", kind="error")
+            return
+
+        help_request = self.app.getEntry("Description:")
+        # Test if the help request is empty
+        if help_request == "":
+            self.app.popUp(
+                "Error", "Please enter a description of the help you need", kind="error")
+            return
+        self.app.clearEntry("Description:")
+        try:
+            # Create the help request message
+            help_request = [self.team_text, help_request,
+                            datetime.now().strftime('%H:%M:%S')]
+
+            task_dict = {
+                "group": help_request[0],
+                "description": help_request[1],
+                "time": help_request[2]
+            }
+
+            self.group_mqtt_client.handle_request_help(task_dict)
+
+            self.app.setLabel("Request feedback", "Request successfully sent!")
+            self.app.setLabelFg("Request feedback", "green")
+
+            # Set the requesting help flag to true
+            self.requesting_help = True
+
+        except Exception as e:
+            self.app.popUp("Error", e, kind="error")
+            self.app.setLabel("Request feedback", "Request failed!")
+            self.app.setLabelFg("Request feedback", "red")
+            return
 
     def stop(self):
         """
