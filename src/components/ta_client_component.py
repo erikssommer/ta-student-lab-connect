@@ -212,7 +212,7 @@ class TaClientComponent:
 
         # Set up a table to contain the tasks
         self.app.addTable("assigned_tasks", [
-                          ["Description", "Duration"]], addRow=self.add_task, addButton='Add task')
+                          ["Description", "Duration (Minutes)"]], addRow=self.add_task, addButton='Add task')
 
         # Add a button to submit the tasks
         self.app.addButton("Submit tasks", self.submit_tasks)

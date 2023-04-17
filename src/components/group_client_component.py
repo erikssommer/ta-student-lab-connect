@@ -180,6 +180,7 @@ class GroupClientComponent:
         # Add the state machine to the driver
         self.stm_driver.add_machine(group_stm)
 
+    # Method called by the state machines
     def set_status_light(self, light):
         """ Set the status light """
         self.app.setImage("light", light)
@@ -280,7 +281,7 @@ class GroupClientComponent:
         self.app.setLabelSticky("listbox_tasks_label", "w")
         # Add a listbox to host the tasks
         self.app.addTable(
-            "table_tasks", [["Task", "Description", "Duration", "Status"]])
+            "table_tasks", [["Task", "Description", "Duration (Minutes)", "Status"]])
 
         # Add button to registre that a task is done
         self.app.addButton("Mark next task as done", self.mark_task_done)

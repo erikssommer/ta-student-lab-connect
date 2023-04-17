@@ -70,33 +70,36 @@ class StatusLight:
         return intervals
     
     def start_light_timer(self):
+        self._logger.info(f'Starting timer for {self.light_duration[self.current_duration]}')
         self.stm.start_timer("t", self.light_duration[self.current_duration])
 
     def stop_light_timer(self):
+        self._logger.info("Stopping timer")
         self.stm.stop_timer("t")
     
     def on_enter_green(self, init=False):
-        self._logger.debug("Entering GREEN state")
+        self._logger.info("Entering GREEN state")
         self.component.set_status_light(self.green_light_on)
         if init is False:
             self.current_duration += 1
 
     def on_enter_yellow(self):
-        self._logger.debug("Entering YELLOW state")
+        self._logger.info("Entering YELLOW state")
         self.component.set_status_light(self.yellow_light_on)
 
     def on_enter_red(self):
-        self._logger.debug("Entering RED state")
+        self._logger.info("Entering RED state")
         self.component.set_status_light(self.red_light_on)
 
     def on_exit_green(self):
-        self._logger.debug("Exiting GREEN state")
+        self._logger.info("Exiting GREEN state")
         self.component.set_status_light(self.green_light_off)
 
     def turn_off(self):
+        self._logger.info("Turning off")
         self.component.set_status_light(self.green_light_off)
 
     def terminate_stm(self):
         """ The timer has completed """
-        self._logger.debug(f'Team {self.name} completed')
+        self._logger.info(f'Team {self.name} completed')
         self.stm.terminate()
