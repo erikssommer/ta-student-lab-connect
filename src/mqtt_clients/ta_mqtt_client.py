@@ -26,6 +26,7 @@ MQTT_TOPIC_TA_READY_REQUEST = 'ttm4115/project/team10/api/v1/ta_ready/request'
 MQTT_TOPIC_TA_READY_RESPONSE = 'ttm4115/project/team10/api/v1/ta_ready/response'
 MQTT_TOPIC_TA_READY_RESPONSE_ALL = 'ttm4115/project/team10/api/v1/ta_ready/response/all'
 
+
 class TaMqttClient:
     def set_topics(self):
         # Set the topics for the specific TA
@@ -50,7 +51,8 @@ class TaMqttClient:
         # Get the topic
         topic = msg.topic
         # Log the message received
-        self._logger.debug(f'MQTT received message on topic {topic}, with payload {msg.payload}')
+        self._logger.debug(
+            f'MQTT received message on topic {topic}, with payload {msg.payload}')
 
         # Unwrap the message
         try:
@@ -111,7 +113,7 @@ class TaMqttClient:
     def create_payload(self, command, header, body):
         """ Create a payload for the MQTT message """
         return {"command": command, "header": header, "body": body}
-    
+
     def __init__(self, component, logger):
         self.component = component
         self._logger: logging.Logger = logger
@@ -133,7 +135,6 @@ class TaMqttClient:
         # Connect to the broker
         self.mqtt_client.connect(MQTT_BROKER, MQTT_PORT)
 
-    
     def request_update_of_tables(self):
         # Request the tables to be updated
         self._logger.info('Requesting update of tables')
@@ -156,12 +157,13 @@ class TaMqttClient:
 
         mqtt_topic_endpoint = group.lower().replace(" ", "_")
 
-        payload = self.create_payload(command="queue_number", header=self.ta_name, body=message)
+        payload = self.create_payload(
+            command="queue_number", header=self.ta_name, body=message)
 
         # Send the queue number to the group
         self.publish_message(MQTT_TOPIC_QUEUE_NUMBER +
                              "/" + mqtt_topic_endpoint, payload)
-        
+
     def notify_other_tas_getting_help(self, body):
         payload = self.create_payload(
             command="ta_update_receiving_help", header=self.ta_name, body=body)
@@ -174,24 +176,26 @@ class TaMqttClient:
 
         mqtt_topic_endpoint = group.lower().replace(" ", "_")
 
-        payload = self.create_payload(command="getting_help", header=self.ta_name, body=message)
+        payload = self.create_payload(
+            command="getting_help", header=self.ta_name, body=message)
 
         # Send the group name to the group
         self.publish_message(MQTT_TOPIC_GETTING_HELP +
                              "/" + mqtt_topic_endpoint, payload)
-        
+
     def report_received_help(self, group):
         # Wrap the group name in a list
         message = {"group": group}
 
         mqtt_topic_endpoint = group.lower().replace(" ", "_")
 
-        payload = self.create_payload(command="received_help", header=self.ta_name, body=message)
+        payload = self.create_payload(
+            command="received_help", header=self.ta_name, body=message)
 
         # Send the group name to the group
         self.publish_message(MQTT_TOPIC_RECEIVED_HELP +
                              "/" + mqtt_topic_endpoint, payload)
-        
+
     def notify_other_tas_got_help(self, row):
 
         body = {
@@ -209,27 +213,30 @@ class TaMqttClient:
 
         mqtt_topic_endpoint = group.lower().replace(" ", "_")
 
-        payload = self.create_payload(command="ta_present", header=self.ta_name, body=message)
+        payload = self.create_payload(
+            command="ta_present", header=self.ta_name, body=message)
 
         # Send the group name to the group
         self.publish_message(MQTT_TOPIC_TA_READY_RESPONSE +
                              "/" + mqtt_topic_endpoint, payload)
-        
+
     def send_tasks_to_group(self, header, body):
         mqtt_topic_endpoint = header.lower().replace(" ", "_")
 
-        payload = self.create_payload(command="submit_tasks_late", header=self.ta_name, body=body)
+        payload = self.create_payload(
+            command="submit_tasks_late", header=self.ta_name, body=body)
 
         # Send the tasks to the group
         self.publish_message(MQTT_TOPIC_TASKS_LATE + "/" +
                              mqtt_topic_endpoint, payload)
-        
+
     def submit_tasks_to_groups(self, body):
-        payload = self.create_payload(command="submit_tasks", header=self.ta_name, body=body)
+        payload = self.create_payload(
+            command="submit_tasks", header=self.ta_name, body=body)
 
         # Publish the tasks to the MQTT broker
         self.publish_message(MQTT_TOPIC_TASKS, payload)
-    
+
     def submit_tasks_to_tas(self, body):
         payload = self.create_payload(
             command="ta_update_tasks", header=self.ta_name, body=body)
@@ -245,7 +252,3 @@ class TaMqttClient:
 
         # Send the tasks to the TA that requested the update
         self.publish_message(MQTT_TOPIC_TA + "/" + ta_endpoint, payload)
-    
-
-        
-    

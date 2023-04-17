@@ -43,7 +43,8 @@ class GroupClientComponent:
 
         # Start the MQTT client in a separate thread to avoid blocking
         try:
-            thread = Thread(target=self.group_mqtt_client.mqtt_client.loop_start())
+            thread = Thread(
+                target=self.group_mqtt_client.mqtt_client.loop_start())
             thread.start()
         except KeyboardInterrupt:
             print("Interrupted")
@@ -331,7 +332,7 @@ class GroupClientComponent:
         self.queue_number = body['queue_number']
         self.app.setLabel("queue_number_label",
                           f"Number in queue: {self.queue_number}")
-    
+
     def handle_ta_present(self, all=False):
         # Handle that the TA is ready
         if self.ta_connected == False:
@@ -346,7 +347,7 @@ class GroupClientComponent:
     def set_status_light(self, light):
         """ Set the status light """
         self.app.setImage("light", light)
-    
+
     def receiving_help(self):
         # Update the queue number label to inform the user that they are getting help
         self.app.setLabel("queue_number_label", "Getting help!")

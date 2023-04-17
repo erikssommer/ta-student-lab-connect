@@ -8,6 +8,7 @@ from mqtt_clients.ta_mqtt_client import TaMqttClient
 
 # TA client component
 
+
 class TaClientComponent:
 
     # State machine methods
@@ -30,7 +31,8 @@ class TaClientComponent:
 
         # Start the MQTT client in a separate thread to avoid blocking
         try:
-            thread = Thread(target=self.ta_mqtt_client.mqtt_client.loop_start())
+            thread = Thread(
+                target=self.ta_mqtt_client.mqtt_client.loop_start())
             thread.start()
         except KeyboardInterrupt:
             print("Interrupted")
@@ -545,7 +547,6 @@ class TaClientComponent:
                         item[0], item[1]])
 
                 self.tasks_submitted = True
-        
 
         # Update the groups requesting help
         if self.app.getTableRowCount("groups_request_help") == 0:

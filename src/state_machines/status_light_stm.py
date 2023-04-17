@@ -23,37 +23,48 @@ class StatusLight:
 
     def create_machine(team, durations: list[str], component, logger):
         """ Create a state machine for the status light"""
-        status_light = StatusLight(name=team, durations=durations, component=component, logger=logger)
+        status_light = StatusLight(
+            name=team, durations=durations, component=component, logger=logger)
 
         # Define the transitions
 
         # Initial transition
-        init = {'source': 'initial', 'target': 'green', 'effect': 'on_enter_green(True); start_light_timer()'}
+        init = {'source': 'initial', 'target': 'green',
+                'effect': 'on_enter_green(True); start_light_timer()'}
 
         # Define the transitions where the task is started
-        task_start1 = {'trigger': 'task_start', 'source': 'green', 'target': 'green', 'effect': 'on_enter_green()'}
-        task_start2 = {'trigger': 'task_start', 'source': 'yellow', 'target': 'green', 'effect': 'on_enter_green()'}
-        task_start3 = {'trigger': 'task_start', 'source': 'red', 'target': 'green', 'effect': 'on_enter_green()'}
+        task_start1 = {'trigger': 'task_start', 'source': 'green',
+                       'target': 'green', 'effect': 'on_enter_green()'}
+        task_start2 = {'trigger': 'task_start', 'source': 'yellow',
+                       'target': 'green', 'effect': 'on_enter_green()'}
+        task_start3 = {'trigger': 'task_start', 'source': 'red',
+                       'target': 'green', 'effect': 'on_enter_green()'}
 
         # Define the transitions where the time is up
-        t0 = {'trigger': 't', 'source': 'green', 'target': 'yellow', 'effect': 'on_enter_yellow(); stop_light_timer(); start_light_timer()'}
-        t1 = {'trigger': 't', 'source': 'yellow', 'target': 'red', 'effect': 'on_enter_red(); stop_light_timer(); start_light_timer()'}
+        t0 = {'trigger': 't', 'source': 'green', 'target': 'yellow',
+              'effect': 'on_enter_yellow(); stop_light_timer(); start_light_timer()'}
+        t1 = {'trigger': 't', 'source': 'yellow', 'target': 'red',
+              'effect': 'on_enter_red(); stop_light_timer(); start_light_timer()'}
 
-        tasks_done1 = {'trigger': 'tasks_done', 'source': 'green', 'target': 'off', 'effect': 'turn_off(); stop_light_timer(); terminate_stm()'}
-        tasks_done2 = {'trigger': 'tasks_done', 'source': 'yellow', 'target': 'off', 'effect': 'turn_off(); stop_light_timer(); terminate_stm()'}
-        tasks_done3 = {'trigger': 'tasks_done', 'source': 'red', 'target': 'off', 'effect': 'turn_off(); stop_light_timer(); terminate_stm()'}
+        tasks_done1 = {'trigger': 'tasks_done', 'source': 'green', 'target': 'off',
+                       'effect': 'turn_off(); stop_light_timer(); terminate_stm()'}
+        tasks_done2 = {'trigger': 'tasks_done', 'source': 'yellow', 'target': 'off',
+                       'effect': 'turn_off(); stop_light_timer(); terminate_stm()'}
+        tasks_done3 = {'trigger': 'tasks_done', 'source': 'red', 'target': 'off',
+                       'effect': 'turn_off(); stop_light_timer(); terminate_stm()'}
 
         # Define the state machine
         status_light_stm = stmpy.Machine(
             name=team,
-            transitions=[init, task_start1, task_start2, task_start3, t0, t1, tasks_done1, tasks_done2, tasks_done3],
+            transitions=[init, task_start1, task_start2, task_start3,
+                         t0, t1, tasks_done1, tasks_done2, tasks_done3],
             obj=status_light
         )
 
         status_light.stm = status_light_stm
 
         return status_light_stm
-    
+
     def convert_durations_to_milliseconds(self, durations: list[str]):
         duration_in_milliseconds = []
         for duration in durations:
@@ -62,21 +73,22 @@ class StatusLight:
             # Convert duration to milliseconds and append to list
             duration_in_milliseconds.append(duration_in_minutes * 60 * 1000)
         return duration_in_milliseconds
-    
+
     def set_all_light_intervals(self, durations: list[str]):
         intervals = []
         for duration in durations:
             intervals.append(duration / 2)
         return intervals
-    
+
     def start_light_timer(self):
-        self._logger.info(f'Starting timer for {self.light_duration[self.current_duration]}')
+        self._logger.info(
+            f'Starting timer for {self.light_duration[self.current_duration]}')
         self.stm.start_timer("t", self.light_duration[self.current_duration])
 
     def stop_light_timer(self):
         self._logger.info("Stopping timer")
         self.stm.stop_timer("t")
-    
+
     def on_enter_green(self, init=False):
         self._logger.info("Entering GREEN state")
         self.component.set_status_light(self.green_light_on)

@@ -31,7 +31,7 @@ class GroupMqttClient:
         self.component = component
         # Setting the logger
         self.logger: logging.Logger = logger
-         # create a new MQTT client
+        # Create a new MQTT client
         self.logger.debug(
             f'Connecting to MQTT broker {MQTT_BROKER} at port {MQTT_PORT}')
         self.mqtt_client = mqtt.Client()
@@ -45,7 +45,7 @@ class GroupMqttClient:
 
         # Connect to the broker (subscribe to topics when logged on)
         self.mqtt_client.connect(MQTT_BROKER, MQTT_PORT)
-    
+
     def set_topics(self):
         """ Set the topics for the group client component """
         self.logger.debug('Setting topics')
@@ -147,7 +147,7 @@ class GroupMqttClient:
     def create_payload(self, command, header, body):
         """ Create a payload for the MQTT message """
         return {"command": command, "header": header, "body": body}
-    
+
     # Handle the different commands
     def handle_group_present(self):
         body = {
@@ -162,18 +162,18 @@ class GroupMqttClient:
 
     def handle_request_help(self, task_dict):
         payload = self.create_payload(
-                command="request_help", header=self.team_mqtt_endpoint, body=task_dict)
+            command="request_help", header=self.team_mqtt_endpoint, body=task_dict)
 
         self.publish_message(self.MQTT_TOPIC_REQUEST_HELP, payload)
 
     def handle_task_done(self, body):
         payload = self.create_payload(
-                    command="report_current_task", header=self.team_mqtt_endpoint, body=body)
+            command="report_current_task", header=self.team_mqtt_endpoint, body=body)
 
         self.publish_message(self.MQTT_TOPIC_PROGRESS, payload)
-    
+
     def handle_all_tasks_done(self, body):
         payload = self.create_payload(
-                command="tasks_done", header=self.team_mqtt_endpoint, body=body)
+            command="tasks_done", header=self.team_mqtt_endpoint, body=body)
 
         self.publish_message(self.MQTT_TOPIC_GROUP_DONE, payload)
