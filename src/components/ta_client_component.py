@@ -3,7 +3,7 @@ import stmpy
 from appJar import gui
 from datetime import datetime
 import logging
-from state_machines.ta_stm import TaLogic
+from state_machines.ta_stm import TaSTM
 from mqtt_clients.ta_mqtt_client import TaMqttClient
 
 # TA client component
@@ -14,7 +14,7 @@ class TaClientComponent:
     def create_ta_stm(self):
         """ Create a new ta state machine """
         # Create a new group state machine
-        ta_stm = TaLogic.create_machine(
+        ta_stm = TaSTM.create_machine(
             ta=self.ta_name, component=self, logger=self._logger)
         # Add the state machine to the driver
         self.stm_driver.add_machine(ta_stm)
@@ -245,9 +245,6 @@ class TaClientComponent:
 
         # Report to group that it is getting help
         self.ta_mqtt_client.report_getting_help(data[0])
-
-        # Send the new queue number to all the groups
-        self.send_new_queue_number_to_groups()
 
         self.notify_other_tas_getting_help(data, row)
 
