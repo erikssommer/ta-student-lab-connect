@@ -1,8 +1,6 @@
 # Group client component
-import paho.mqtt.client as mqtt
 from appJar import gui
 from datetime import datetime
-import json
 import stmpy
 from threading import Thread
 from state_machines.status_light_stm import StatusLight
@@ -10,158 +8,13 @@ from state_machines.group_stm import GroupLogic
 import logging
 import time
 
+from mqtt_handlers.mqtt_group import MqttGroup
+
 # Number of teams able to connect to the system
 NR_OF_TEAMS = 20
 
-# MQTT broker address
-MQTT_BROKER = 'mqtt20.iik.ntnu.no'
-MQTT_PORT = 1883
-
-# MQTT topics, the team number is appended to the end of the topic when logging in and subscribing
-MQTT_TOPIC_TASKS = 'ttm4115/project/team10/api/v1/tasks'
-MQTT_TOPIC_TASKS_LATE = 'ttm4115/project/team10/api/v1/tasks/late'
-
-MQTT_TOPIC_REQUEST_HELP = 'ttm4115/project/team10/api/v1/request'
-MQTT_TOPIC_GROUP_PRESENT = 'ttm4115/project/team10/api/v1/present'
-MQTT_TOPIC_GROUP_DONE = 'ttm4115/project/team10/api/v1/done'
-MQTT_TOPIC_PROGRESS = 'ttm4115/project/team10/api/v1/progress'
-
-MQTT_TOPIC_QUEUE_NUMBER = 'ttm4115/project/team10/api/v1/queue_number'
-MQTT_TOPIC_GETTING_HELP = 'ttm4115/project/team10/api/v1/getting_help'
-MQTT_TOPIC_RECEIVED_HELP = 'ttm4115/project/team10/api/v1/received_help'
-
-MQTT_TOPIC_TA_READY = 'ttm4115/project/team10/api/v1/ta_ready/request'
-MQTT_TOPIC_TA_READY_RESPONSE = 'ttm4115/project/team10/api/v1/ta_ready/response'
-MQTT_TOPIC_TA_READY_RESPONSE_ALL = 'ttm4115/project/team10/api/v1/ta_ready/response/all'
-
 
 class GroupClientComponent:
-
-    def set_topics(self):
-        """ Set the topics for the group client component """
-        self._logger.debug('Setting topics')
-        self.MQTT_TOPIC_TASKS = MQTT_TOPIC_TASKS
-        self.MQTT_TOPIC_TA_READY = MQTT_TOPIC_TA_READY
-        self.MQTT_TOPIC_TA_READY_RESPONSE_ALL = MQTT_TOPIC_TA_READY_RESPONSE_ALL
-        self.MQTT_TOPIC_TA_READY_RESPONSE = MQTT_TOPIC_TA_READY_RESPONSE + \
-            "/" + self.team_mqtt_endpoint
-
-        self.MQTT_TOPIC_TASKS_LATE = MQTT_TOPIC_TASKS_LATE + \
-            "/" + self.team_mqtt_endpoint
-        self.MQTT_TOPIC_REQUEST_HELP = MQTT_TOPIC_REQUEST_HELP + \
-            "/" + self.team_mqtt_endpoint
-        self.MQTT_TOPIC_GROUP_PRESENT = MQTT_TOPIC_GROUP_PRESENT + \
-            "/" + self.team_mqtt_endpoint
-        self.MQTT_TOPIC_GROUP_DONE = MQTT_TOPIC_GROUP_DONE + "/" + self.team_mqtt_endpoint
-        self.MQTT_TOPIC_PROGRESS = MQTT_TOPIC_PROGRESS + "/" + self.team_mqtt_endpoint
-
-        self.MQTT_TOPIC_QUEUE_NUMBER = MQTT_TOPIC_QUEUE_NUMBER + \
-            "/" + self.team_mqtt_endpoint
-        self.MQTT_TOPIC_GETTING_HELP = MQTT_TOPIC_GETTING_HELP + \
-            "/" + self.team_mqtt_endpoint
-        self.MQTT_TOPIC_RECEIVED_HELP = MQTT_TOPIC_RECEIVED_HELP + \
-            "/" + self.team_mqtt_endpoint
-
-    def subscribe_topics(self):
-        """ Subscribe to the topics for the group client component """
-        self._logger.debug('Subscribing to topics')
-        self.mqtt_client.subscribe(self.MQTT_TOPIC_TASKS)
-        self.mqtt_client.subscribe(self.MQTT_TOPIC_TASKS_LATE)
-        self.mqtt_client.subscribe(self.MQTT_TOPIC_QUEUE_NUMBER)
-        self.mqtt_client.subscribe(self.MQTT_TOPIC_GETTING_HELP)
-        self.mqtt_client.subscribe(self.MQTT_TOPIC_RECEIVED_HELP)
-        self.mqtt_client.subscribe(self.MQTT_TOPIC_TA_READY_RESPONSE)
-        self.mqtt_client.subscribe(self.MQTT_TOPIC_TA_READY_RESPONSE_ALL)
-
-    # MQTT connection logic
-
-    def on_connect(self, client, userdata, flags, rc):
-        # Only log that we are connected if the connection was successful
-        self._logger.debug(f'MQTT connected to {client}')
-
-    def on_message(self, client, userdata, msg):
-        # Retrieving the topic and payload
-        topic = msg.topic
-
-        self._logger.debug(
-            f'Received message on topic {topic}, with payload {msg.payload}')
-
-        # Unwrap JSON-encoded payload
-        try:
-            payload = json.loads(msg.payload.decode('utf-8'))
-        except json.JSONDecodeError:
-            self._logger.error(
-                f'Could not decode JSON from message {msg.payload}')
-            return
-
-        # Get the payload attributes
-        command = payload.get('command')
-        header = payload.get('header')
-        body = payload.get('body')
-
-        # Handle the different commands
-        if command == "submit_tasks":
-            # Update the listbox with the tasks
-            self.handle_recieve_tasks(body)
-
-            # Cange state to "working on task"
-            self.stm_driver.send('task_start', self.team_text)
-
-        if command == "submit_tasks_late":
-            # Update the listbox with the late tasks
-            self.handle_recieve_tasks(body)
-
-            # Cange state to "working on task"
-            self.stm_driver.send('task_start', self.team_text)
-
-        if command == "queue_number":
-            self.handle_update_queue_number(body)
-
-        if command == "getting_help":
-            self.handle_getting_help(body)
-
-            # Change state to "receive_help"
-            self.stm_driver.send('receive_help', self.team_text)
-
-        if command == "received_help":
-            self.handle_received_help(body)
-
-            # Change state to "receive_help"
-            self.stm_driver.send('received_help', self.team_text)
-
-        if command == "ta_present":
-            # Handle that the TA is ready
-            if self.ta_connected == False:
-                logging.info("TA is ready")
-                self.ta_connected = True
-                self.app.setLabel("TA_status_label", "")
-
-        if command == "ta_present_all":
-            # Handle that a TA is ready
-            if self.ta_connected == False:
-                logging.info("TA is ready")
-                self.ta_connected = True
-                self.app.setLabel("TA_status_label", "")
-
-                # If the ta_connected is false it means that it is the first ta that is ready.
-                # So we need to send the group present message again
-                self.handle_group_present()
-
-    def publish_message(self, topic, message):
-        """Publish a message to the MQTT broker.
-
-        Args:
-            topic (str): The topic to publish to.
-            message (str): The message to publish.
-        """
-        payload = json.dumps(message)
-        self._logger.info(f'Publishing message: {payload}')
-        self.mqtt_client.publish(topic, payload=payload, qos=2)
-
-    # MQTT message creation logic
-    def create_payload(self, command, header, body):
-        """ Create a payload for the MQTT message """
-        return {"command": command, "header": header, "body": body}
 
     # Creation on state machines logic
     def create_status_light_stm(self, durations: list[str]):
@@ -191,24 +44,16 @@ class GroupClientComponent:
         print('logging under name {}.'.format(__name__))
         self._logger.info('Starting Component')
 
-        # create a new MQTT client
-        self._logger.debug(
-            f'Connecting to MQTT broker {MQTT_BROKER} at port {MQTT_PORT}')
-        self.mqtt_client = mqtt.Client()
-        # callback methods
-        self.mqtt_client.on_connect = self.on_connect
-        self.mqtt_client.on_message = self.on_message
-
-        # Connect to the broker (subscribe to topics when logged on)
-        self.mqtt_client.connect(MQTT_BROKER, MQTT_PORT)
+        # Create the MQTT handler
+        self.mqtt_handler = MqttGroup(self, logger)
 
         # Start the MQTT client in a separate thread to avoid blocking
         try:
-            thread = Thread(target=self.mqtt_client.loop_start())
+            thread = Thread(target=self.mqtt_handler.mqtt_client.loop_start())
             thread.start()
         except KeyboardInterrupt:
             print("Interrupted")
-            self.mqtt_client.disconnect()
+            self.mqtt_handler.mqtt_client.disconnect()
 
         # Setting up the drivers for the state machines
         # Start the stmpy driver for the group component, without any state machines for now
@@ -342,8 +187,10 @@ class GroupClientComponent:
 
         self.team_text = message
 
+        self.mqtt_handler.team_text = self.team_text
+
         # Team text to lower case and remove spaces
-        self.team_mqtt_endpoint = self.team_text.lower().replace(" ", "_")
+        self.mqtt_handler.team_mqtt_endpoint = self.team_text.lower().replace(" ", "_")
 
         # Close the popup window
         self.app.hideSubWindow("Enter Group Number")
@@ -355,12 +202,12 @@ class GroupClientComponent:
         self._logger.info(f'Team number: {self.team_text}')
 
         # Create the topics for the group
-        self.set_topics()
+        self.mqtt_handler.set_topics()
 
         # Subscribe to the topic for the group
-        self.subscribe_topics()
+        self.mqtt_handler.subscribe_topics()
 
-        self.handle_group_present()
+        self.mqtt_handler.handle_group_present()
 
         # Start the group state machine
         self.create_group_stm()
@@ -418,10 +265,8 @@ class GroupClientComponent:
                 "time": help_request[2]
             }
 
-            payload = self.create_payload(
-                command="request_help", header=self.team_mqtt_endpoint, body=task_dict)
+            self.mqtt_handler.handle_request_help(task_dict)
 
-            self.publish_message(self.MQTT_TOPIC_REQUEST_HELP, payload)
             self.app.setLabel("Request feedback", "Request successfully sent!")
             self.app.setLabelFg("Request feedback", "green")
 
@@ -468,46 +313,30 @@ class GroupClientComponent:
                 # Report the task as done to the TAs
                 body = {"group": self.team_text, "current_task": data[0]}
 
-                payload = self.create_payload(
-                    command="report_current_task", header=self.team_mqtt_endpoint, body=body)
+                self.mqtt_handler.handle_task_done(body)
 
-                self.publish_message(self.MQTT_TOPIC_PROGRESS, payload)
                 break
-
-        # Report to the light stm that the task is done
-        if duration is not None:
-            self.stm_driver.send('task_start', self.team_text)
 
         # Check if all tasks are done
         if self.app.getTableRow("table_tasks", self.app.getTableRowCount("table_tasks") - 1)[3] == "Done":
             self.app.popUp("Info", "All tasks are done", kind="info")
             self.app.setLabel("all_tasks_done_label",
                               "All tasks are done! Good job!")
-            self.stm_driver.send('tasks_done', self.team_text)
 
             # Report the task as done to the TAs
             body = {"group": self.team_text}
 
-            payload = self.create_payload(
-                command="tasks_done", header=self.team_mqtt_endpoint, body=body)
-
-            self.publish_message(self.MQTT_TOPIC_GROUP_DONE, payload)
+            self.mqtt_handler.handle_all_tasks_done(body)
 
             # Change state to "tasks_done"
             self.stm_driver.send("tasks_done", self.team_text)
+            return
+
+        # Report to the light stm that the task is done
+        if duration is not None:
+            self.stm_driver.send('task_start', self.team_text)
 
     # Handle request methods
-
-    def handle_group_present(self):
-        body = {
-            "group": self.team_text
-        }
-
-        payload = self.create_payload(
-            command="group_present", header=self.team_mqtt_endpoint, body=body)
-
-        # Notify the TAs that the group is ready
-        self.publish_message(self.MQTT_TOPIC_GROUP_PRESENT, payload)
 
     def handle_recieve_tasks(self, payload):
         # Only update the tasks once
@@ -537,6 +366,9 @@ class GroupClientComponent:
 
         self.create_status_light_stm(durations=duration_list)
 
+        # Cange state to "working on task"
+        self.stm_driver.send('task_start', self.team_text)
+
     def handle_update_queue_number(self, body):
         self.queue_number = body['queue_number']
         self.app.setLabel("queue_number_label",
@@ -548,18 +380,34 @@ class GroupClientComponent:
 
         self.app.setLabel("Request feedback", "")
 
+        # Change state to "receive_help"
+        self.stm_driver.send('receive_help', self.team_text)
+
     def handle_received_help(self, body):
         # Update the queue number label to inform the user that they have received help
         self.app.setLabel("queue_number_label", "Received help!")
         # Set the requesting help flag to false
         self.requesting_help = False
 
+        # Change state to "receive_help"
+        self.stm_driver.send('received_help', self.team_text)
+    
+    def handle_ta_present(self, all=False):
+        # Handle that the TA is ready
+        if self.ta_connected == False:
+            self._logger.info("TA is ready")
+            self.ta_connected = True
+            self.app.setLabel("TA_status_label", "")
+
+            if all:
+                self.mqtt_handler.handle_group_present()
+
     def stop(self):
         """
         Stop the component.
         """
         # stop the MQTT client
-        self.mqtt_client.loop_stop()
+        self.mqtt_handler.mqtt_client.loop_stop()
 
         # stop the stmpy drivers
         self.stm_driver.stop()
