@@ -45,7 +45,9 @@ class TaSTM:
     def help_group(self):
         self._logger.info(f'TA {self.name} is helping a group')
         # Updating the queue number for the groups when a TA is helping a group
+        self.component.set_helping_group(True)
         self.component.send_new_queue_number_to_groups()
 
     def help_recieved(self):
+        self.component.set_helping_group(False)
         self._logger.info(f'TA {self.name} recieved a group help')

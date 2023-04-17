@@ -50,6 +50,8 @@ class TaClientComponent:
         # Can only update tables once
         self.update_tabels = False
 
+        self.helping_group = False
+
         # Settup the GUI
         self.setup_gui()
 
@@ -231,6 +233,11 @@ class TaClientComponent:
         self.ta_mqtt_client.report_queue_number(header, queue_number + 1)
 
     def assign_getting_help(self, row):
+        # Check if the TA is already helping a group (can only help one group at a time)
+        if self.helping_group:
+            self.app.errorBox("Error", "You are already helping a group")
+            return
+        
         # Get the row of the table
         data = self.app.getTableRow("groups_request_help", row)
 
@@ -252,6 +259,9 @@ class TaClientComponent:
 
         # Change state to "helping_group"
         self.stm_driver.send('help_group', self.ta_name)
+    
+    def set_helping_group(self, helping):
+        self.helping_group = helping
 
     def send_new_queue_number_to_groups(self):
         for row in range(self.app.getTableRowCount("groups_request_help")):
@@ -276,6 +286,12 @@ class TaClientComponent:
     def assign_got_help(self, row):
         # Get the row of the table
         data = self.app.getTableRow("groups_getting_help", row)
+
+        # Test if the ta is helping the group
+        if data[3] != self.ta_name:
+            self.app.errorBox("Error", "You are not helping this group")
+            return
+
         # Remove the row from the table of groups getting help
         self.app.deleteTableRow("groups_getting_help", row)
 
