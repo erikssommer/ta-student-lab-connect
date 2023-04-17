@@ -9,7 +9,7 @@ class TaSTM:
         self.component = component
     
     def create_machine(ta, component, logger):
-        ta_logic = TaSTM(name=ta, component=component, logger=logger)
+        ta_stm = TaSTM(name=ta, component=component, logger=logger)
 
         # Define the transitions
         init = {'source': 'initial', 'target': 'not_helping_group', 'effect': 'started()'}
@@ -25,10 +25,10 @@ class TaSTM:
         ta_stm = stmpy.Machine(
             name=ta,
             transitions=[init, helping_group1, helping_group2, not_helping_group1],
-            obj=ta_logic,
+            obj=ta_stm,
         )
 
-        ta_logic.stm = ta_stm
+        ta_stm.stm = ta_stm
 
         return ta_stm
 
