@@ -4,7 +4,7 @@ from datetime import datetime
 import stmpy
 from threading import Thread
 from state_machines.status_light_stm import StatusLight
-from state_machines.group_stm import GroupLogic
+from state_machines.group_stm import GroupSTM
 import logging
 import time
 from mqtt_clients.group_mqtt_client import GroupMqttClient
@@ -27,7 +27,7 @@ class GroupClientComponent:
     def create_group_stm(self):
         """ Create a new group state machine """
         # Create a new group state machine
-        group_stm = GroupLogic.create_machine(
+        group_stm = GroupSTM.create_machine(
             team=self.team_text, component=self, logger=self._logger)
         # Add the state machine to the driver
         self.stm_driver.add_machine(group_stm)

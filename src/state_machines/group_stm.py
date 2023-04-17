@@ -2,7 +2,7 @@
 import stmpy
 import logging
 
-class GroupLogic:
+class GroupSTM:
     """ State machine for a group client """
     def __init__(self, name, component, logger):
         self._logger: logging.Logger = logger
@@ -12,7 +12,7 @@ class GroupLogic:
 
     def create_machine(team, component, logger):
         """ Create the state machine for a group client """
-        group_logic = GroupLogic(name=team, component=component, logger=logger)
+        group_stm = GroupSTM(name=team, component=component, logger=logger)
 
         # Define the transitions
         init = {'source': 'initial', 'target': 'not_working_on_task', 'effect': 'started()'}
@@ -38,10 +38,10 @@ class GroupLogic:
         group_stm = stmpy.Machine(
             name=team,
             transitions=[init, task_start1, task_start2, waiting_for_help1, waiting_for_help2, receiving_help1, received_help1, tasks_done1],
-            obj=group_logic,
+            obj=group_stm,
         )
 
-        group_logic.stm = group_stm
+        group_stm.stm = group_stm
 
         return group_stm
     
