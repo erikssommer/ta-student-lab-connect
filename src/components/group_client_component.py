@@ -339,9 +339,6 @@ class GroupClientComponent:
 
         self.create_status_light_stm(durations=duration_list)
 
-        # Cange state to "working on task"
-        self.stm_driver.send('task_start', self.status_light_stm_name)
-
     def handle_update_queue_number(self, body):
         self.queue_number = body['queue_number']
         self.app.setLabel("queue_number_label",

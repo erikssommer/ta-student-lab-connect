@@ -21,41 +21,46 @@ class StatusLight:
 
         self.component = component
 
+        self.initial = True
+
     def create_machine(team, durations: list[str], component, logger):
         """ Create a state machine for the status light"""
         status_light = StatusLight(
             name=team, durations=durations, component=component, logger=logger)
+        
+        # Define the states
+        green = {'name': 'green', 'entry': 'on_enter_green(); start_light_timer()'}
+        yellow = {'name': 'yellow', 'entry': 'on_enter_yellow(); stop_light_timer(); start_light_timer()'}
+        red = {'name': 'red', 'entry': 'on_enter_red(); stop_light_timer()'}
+        off = {'name': 'off', 'entry': 'turn_off(); terminate_stm()'}
 
         # Define the transitions
 
         # Initial transition
-        init = {'source': 'initial', 'target': 'green',
-                'effect': 'on_enter_green(True); start_light_timer()'}
+        init = {'source': 'initial', 'target': 'green'}
 
         # Define the transitions where the task is started
         task_start1 = {'trigger': 'task_start', 'source': 'green',
-                       'target': 'green', 'effect': 'on_enter_green()'}
+                       'target': 'green'}
         task_start2 = {'trigger': 'task_start', 'source': 'yellow',
-                       'target': 'green', 'effect': 'on_enter_green()'}
+                       'target': 'green'}
         task_start3 = {'trigger': 'task_start', 'source': 'red',
-                       'target': 'green', 'effect': 'on_enter_green()'}
+                       'target': 'green'}
 
         # Define the transitions where the time is up
-        t0 = {'trigger': 't', 'source': 'green', 'target': 'yellow',
-              'effect': 'on_enter_yellow(); stop_light_timer(); start_light_timer()'}
-        t1 = {'trigger': 't', 'source': 'yellow', 'target': 'red',
-              'effect': 'on_enter_red(); stop_light_timer()'}
+        t0 = {'trigger': 't', 'source': 'green', 'target': 'yellow'}
+        t1 = {'trigger': 't', 'source': 'yellow', 'target': 'red'}
 
         tasks_done1 = {'trigger': 'tasks_done', 'source': 'green', 'target': 'off',
-                       'effect': 'turn_off(); stop_light_timer(); terminate_stm()'}
+                       'effect': 'stop_light_timer()'}
         tasks_done2 = {'trigger': 'tasks_done', 'source': 'yellow', 'target': 'off',
-                       'effect': 'turn_off(); stop_light_timer(); terminate_stm()'}
-        tasks_done3 = {'trigger': 'tasks_done', 'source': 'red', 'target': 'off',
-                       'effect': 'turn_off(); stop_light_timer(); terminate_stm()'}
+                       'effect': 'stop_light_timer()'}
+        tasks_done3 = {'trigger': 'tasks_done', 'source': 'red', 'target': 'off'}
 
         # Define the state machine
         status_light_stm = stmpy.Machine(
             name=team,
+            states=[green, yellow, red, off],
             transitions=[init, task_start1, task_start2, task_start3,
                          t0, t1, tasks_done1, tasks_done2, tasks_done3],
             obj=status_light
@@ -89,11 +94,17 @@ class StatusLight:
         self._logger.info("Stopping timer")
         self.stm.stop_timer("t")
 
-    def on_enter_green(self, init=False):
+    def on_enter_green(self):
         self._logger.info("Entering GREEN state")
         self.component.set_status_light(self.green_light_on)
-        if init is False:
-            self.current_duration += 1
+
+        # If this is the first time entering the state, 
+        # do not increment the current duration counter
+        if self.initial is True:
+            self.initial = False
+            return
+        
+        self.current_duration += 1
 
     def on_enter_yellow(self):
         self._logger.info("Entering YELLOW state")
@@ -102,10 +113,6 @@ class StatusLight:
     def on_enter_red(self):
         self._logger.info("Entering RED state")
         self.component.set_status_light(self.red_light_on)
-
-    def on_exit_green(self):
-        self._logger.info("Exiting GREEN state")
-        self.component.set_status_light(self.green_light_off)
 
     def turn_off(self):
         self._logger.info("Turning off")
