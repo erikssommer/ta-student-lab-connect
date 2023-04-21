@@ -20,7 +20,7 @@ class GroupClientComponent:
         """ Create a new status light state machine """
         # Create a new status light state machine
         status_light_stm = StatusLight.create_machine(
-            team=self.team_text, durations=durations, component=self, logger=self._logger)
+            team=self.status_light_stm_name, durations=durations, component=self, logger=self._logger)
         # Add the state machine to the driver
         self.stm_driver.add_machine(status_light_stm)
 
@@ -28,7 +28,7 @@ class GroupClientComponent:
         """ Create a new group state machine """
         # Create a new group state machine
         group_stm = GroupSTM.create_machine(
-            team=self.team_text, component=self, logger=self._logger)
+            team=self.group_stm_name, component=self, logger=self._logger)
         # Add the state machine to the driver
         self.stm_driver.add_machine(group_stm)
 
@@ -74,6 +74,10 @@ class GroupClientComponent:
 
         # Know if a TA is connected
         self.ta_connected = False
+
+        # The names of the state machine for the present group and status light
+        self.group_stm_name = None
+        self.status_light_stm_name = None
 
         # Settup the GUI
         self.setup_gui()
@@ -184,8 +188,14 @@ class GroupClientComponent:
 
         self.group_mqtt_client.team_text = self.team_text
 
+        team_text_lower = self.team_text.lower().replace(" ", "_")
+
+        # Set the names of the state machines unique for the group
+        self.group_stm_name = f"{team_text_lower}_ta_stm"
+        self.status_light_stm_name = f"{team_text_lower}_status_light_stm"
+
         # Team text to lower case and remove spaces
-        self.group_mqtt_client.team_mqtt_endpoint = self.team_text.lower().replace(" ", "_")
+        self.group_mqtt_client.team_mqtt_endpoint = team_text_lower
 
         # Close the popup window
         self.app.hideSubWindow("Enter Group Number")
@@ -230,8 +240,12 @@ class GroupClientComponent:
                           help you with your tasks. Good luck!")
 
     def on_request_help(self):
+        # Check of the tasks are submitted
+        if self.app.getTableRowCount("table_tasks") == 0:
+            self.app.popUp("Error", "Tasks need to be submitted befor requesting help", kind="error")
+            return
         # Change state to "waiting_for_help"
-        self.stm_driver.send("request_help", self.team_text)
+        self.stm_driver.send("request_help", self.group_stm_name)
 
     def update_queue_number(self):
         """ Update the queue number """
@@ -280,22 +294,22 @@ class GroupClientComponent:
             self.group_mqtt_client.handle_all_tasks_done(body)
 
             # Change state to "tasks_done"
-            self.stm_driver.send("tasks_done", self.team_text)
+            self.stm_driver.send("tasks_done", self.status_light_stm_name)
             return
 
         # Report to the light stm that the task is done
         if duration is not None:
-            self.stm_driver.send('task_start', self.team_text)
+            self.stm_driver.send('task_start', self.status_light_stm_name)
 
     # Handle request methods
 
     def handle_getting_help(self, body):
         # Change state to "receive_help"
-        self.stm_driver.send('receive_help', self.team_text)
+        self.stm_driver.send('receive_help', self.group_stm_name)
 
     def handle_received_help(self, body):
         # Change state to "receive_help"
-        self.stm_driver.send('received_help', self.team_text)
+        self.stm_driver.send('received_help', self.group_stm_name)
 
     def handle_recieve_tasks(self, payload):
         # Only update the tasks once
@@ -326,7 +340,7 @@ class GroupClientComponent:
         self.create_status_light_stm(durations=duration_list)
 
         # Cange state to "working on task"
-        self.stm_driver.send('task_start', self.team_text)
+        self.stm_driver.send('task_start', self.status_light_stm_name)
 
     def handle_update_queue_number(self, body):
         self.queue_number = body['queue_number']

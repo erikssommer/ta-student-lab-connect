@@ -17,7 +17,7 @@ class GroupSTM:
 
         # Define the transitions
         init = {'source': 'initial',
-                'target': 'not_working_on_task', 'effect': 'started()'}
+                'target': 'not_working_on_task'}
 
         # Define the transitions where the task is started
         task_start1 = {'trigger': 'task_start', 'source': 'not_working_on_task',
@@ -54,10 +54,6 @@ class GroupSTM:
         group_stm.stm = group_stm
 
         return group_stm
-
-    def started(self):
-        self._logger.info(f'Group {self.name} started')
-        self.stm.start()
 
     def task_start(self):
         self._logger.info(f'Group {self.name} is working on a new task')

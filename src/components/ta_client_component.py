@@ -16,7 +16,7 @@ class TaClientComponent:
         """ Create a new ta state machine """
         # Create a new group state machine
         ta_stm = TaSTM.create_machine(
-            ta=self.ta_name, component=self, logger=self._logger)
+            ta=self.ta_stm_name, component=self, logger=self._logger)
         # Add the state machine to the driver
         self.stm_driver.add_machine(ta_stm)
 
@@ -51,6 +51,8 @@ class TaClientComponent:
         self.update_tabels = False
 
         self.helping_group = False
+
+        self.ta_stm_name = None
 
         # Settup the GUI
         self.setup_gui()
@@ -164,8 +166,12 @@ class TaClientComponent:
         # Set the name of the TA
         self.ta_name = name
 
+        ta_name_lower = self.ta_name.lower().replace(" ", "_")
+
         # Set the endpont for the TA
-        self.ta_mqtt_client.ta_mqtt_endpoint = self.ta_name.lower().replace(" ", "_")
+        self.ta_mqtt_client.ta_mqtt_endpoint = ta_name_lower
+
+        self.ta_stm_name = f"{ta_name_lower}_stm"
 
         self.ta_mqtt_client.ta_name = self.ta_name
 
@@ -258,7 +264,7 @@ class TaClientComponent:
         self.notify_other_tas_getting_help(data, row)
 
         # Change state to "helping_group"
-        self.stm_driver.send('help_group', self.ta_name)
+        self.stm_driver.send('help_group', self.ta_stm_name)
     
     def set_helping_group(self, helping):
         self.helping_group = helping
@@ -305,7 +311,7 @@ class TaClientComponent:
         self.ta_mqtt_client.notify_other_tas_got_help(row)
 
         # Change state to "not_helping_group"
-        self.stm_driver.send('help_recieved', self.ta_name)
+        self.stm_driver.send('help_recieved', self.ta_stm_name)
 
     def update_group_with_tasks(self, group):
         data_list = []
@@ -394,6 +400,8 @@ class TaClientComponent:
         # Change the status of the tasks to submitted
         self.tasks_submitted = True
 
+        self.stm_driver.send('publish_tasks', self.ta_stm_name)
+
     def handle_group_present(self, header, body):
         # Notify the group that the TA is present
         self.ta_mqtt_client.report_ta_present(header)
@@ -479,6 +487,8 @@ class TaClientComponent:
 
         self.tasks_submitted = True
 
+        self.stm_driver.send('publish_tasks', self.ta_stm_name)
+
     def handle_ta_update_receiving_help(self, header, body):
         # Testing if the message is from the same TA then do nothing
         if header == self.ta_name:
@@ -563,6 +573,8 @@ class TaClientComponent:
                         item[0], item[1]])
 
                 self.tasks_submitted = True
+
+                self.stm_driver.send('publish_tasks', self.ta_stm_name)
 
         # Update the groups requesting help
         if self.app.getTableRowCount("groups_request_help") == 0:

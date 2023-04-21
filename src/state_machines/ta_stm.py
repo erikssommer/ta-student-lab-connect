@@ -10,26 +10,36 @@ class TaSTM:
         self.component = component
 
     def create_machine(ta, component, logger):
+        """ Create the state machine for a TA client """
         ta_stm = TaSTM(name=ta, component=component, logger=logger)
 
+        # Define the states
+        logged_on = {'name': 'logged_on'}
+        helping_group = {'name': 'helping_group',
+                         'entry': 'help_group()', 'exit': 'help_recieved()'}
+        not_helping_group = {'name': 'not_helping_group'}
+
         # Define the transitions
-        init = {'source': 'initial',
-                'target': 'not_helping_group', 'effect': 'started()'}
+        init = {'source': 'initial', 'target': 'logged_on'}
+
+        publish_tasks = {'trigger': 'publish_tasks',
+                         'source': 'logged_on', 'target': 'not_helping_group'}
 
         # Define the transitions to helping a group
         helping_group1 = {'trigger': 'help_group', 'source': 'not_helping_group',
-                          'target': 'helping_group', 'effect': 'help_group()'}
+                          'target': 'helping_group'}
         helping_group2 = {'trigger': 'help_group', 'source': 'helping_group',
-                          'target': 'helping_group', 'effect': 'help_group()'}
+                          'target': 'helping_group'}
 
         # Define the transitions to not helping a group
         not_helping_group1 = {'trigger': 'help_recieved', 'source': 'helping_group',
-                              'target': 'not_helping_group', 'effect': 'help_recieved()'}
+                              'target': 'not_helping_group'}
 
         # Define the state machine
         ta_stm = stmpy.Machine(
             name=ta,
-            transitions=[init, helping_group1,
+            states=[logged_on, helping_group, not_helping_group],
+            transitions=[init, publish_tasks, helping_group1,
                          helping_group2, not_helping_group1],
             obj=ta_stm,
         )
@@ -37,10 +47,6 @@ class TaSTM:
         ta_stm.stm = ta_stm
 
         return ta_stm
-
-    def started(self):
-        self._logger.info(f'TA {self.name} started')
-        self.stm.start()
 
     def help_group(self):
         self._logger.info(f'TA {self.name} is helping a group')

@@ -44,7 +44,7 @@ class StatusLight:
         t0 = {'trigger': 't', 'source': 'green', 'target': 'yellow',
               'effect': 'on_enter_yellow(); stop_light_timer(); start_light_timer()'}
         t1 = {'trigger': 't', 'source': 'yellow', 'target': 'red',
-              'effect': 'on_enter_red(); stop_light_timer(); start_light_timer()'}
+              'effect': 'on_enter_red(); stop_light_timer()'}
 
         tasks_done1 = {'trigger': 'tasks_done', 'source': 'green', 'target': 'off',
                        'effect': 'turn_off(); stop_light_timer(); terminate_stm()'}

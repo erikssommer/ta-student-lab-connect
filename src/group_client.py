@@ -7,7 +7,7 @@ if __name__ == '__main__':
     # logging.INFO:  Only the most important informational log items
     # logging.WARN:  Show only warnings and errors.
     # logging.ERROR: Show only error messages.
-    debug_level = logging.DEBUG
+    debug_level = logging.INFO
     logger = logging.getLogger(__name__)
     logger.setLevel(debug_level)
     ch = logging.StreamHandler()
