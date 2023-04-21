@@ -593,6 +593,9 @@ class TaClientComponent:
             for item in body['group_status']:
                 self.app.addTableRow("group_status", [
                     item[0], item[1]])
+                
+    def notify_ta_to_finish_helping(self):
+        self.app.popUp("Timer for giving group help has expired. Please finish helping the group and click the button to notify the TA that you are done.")
 
     def stop(self):
         """
