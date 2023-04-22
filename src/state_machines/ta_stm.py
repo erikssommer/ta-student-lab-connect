@@ -21,7 +21,7 @@ class TaSTM:
         not_helping_group = {'name': 'not_helping_group'}
 
         # Define the transitions
-        init = {'source': 'initial', 'target': 'logged_on'}
+        init = {'source': 'initial', 'target': 'logged_on', 'effect': 'started()'}
 
         t_publish_tasks = {'trigger': 'publish_tasks',
                            'source': 'logged_on', 'target': 'not_helping_group'}
@@ -49,6 +49,9 @@ class TaSTM:
         ta_obj.stm = ta_stm
 
         return ta_stm
+    
+    def started(self):
+        self._logger.info(f'TA {self.name} has started')
 
     def help_group(self):
         self._logger.info(f'TA {self.name} is helping a group')
