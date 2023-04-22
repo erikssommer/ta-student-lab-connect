@@ -8,7 +8,7 @@ class TaSTM:
         self._logger: logging.Logger = logger
         self.name = name
         self.component = component
-        self.help_duration_timer = 1000
+        self.help_duration_timer = 10000
 
     def create_machine(ta, component, logger):
         """ Create the state machine for a TA client """
