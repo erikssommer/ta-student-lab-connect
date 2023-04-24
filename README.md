@@ -2,7 +2,7 @@
 Semester project in the course Design of Communicating Systems at NTNU Trondheim
 
 ## Team 10 members
-- ...
+- Andreas Bjørnland
 - ...
 - Edith Aguado Roca
 - Erik Storås Sommer
