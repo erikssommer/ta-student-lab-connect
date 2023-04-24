@@ -55,22 +55,56 @@ class StatusLight:
         init = {'source': 'initial', 'target': 'green'}
 
         # Define the transitions where the task is started
-        task_start1 = {'trigger': 'task_start', 'source': 'green',
-                       'target': 'green'}
-        task_start2 = {'trigger': 'task_start', 'source': 'yellow',
-                       'target': 'green'}
-        task_start3 = {'trigger': 'task_start', 'source': 'red',
-                       'target': 'green'}
+        task_start1 = {
+            'trigger': 'task_start', 
+            'source': 'green',
+            'target': 'green'
+        }
+
+        task_start2 = {
+            'trigger': 'task_start', 
+            'source': 'yellow',
+            'target': 'green'
+        }
+
+        task_start3 = {
+            'trigger': 'task_start', 
+            'source': 'red',
+            'target': 'green'
+        }
 
         # Define the transitions where the time is up
-        t0 = {'trigger': 't', 'source': 'green', 'target': 'yellow'}
-        t1 = {'trigger': 't', 'source': 'yellow', 'target': 'red'}
+        t0 = {
+            'trigger': 't', 
+            'source': 'green', 
+            'target': 'yellow'
+        }
 
-        tasks_done1 = {'trigger': 'tasks_done', 'source': 'green', 'target': 'off',
-                       'effect': 'stop_light_timer()'}
-        tasks_done2 = {'trigger': 'tasks_done', 'source': 'yellow', 'target': 'off',
-                       'effect': 'stop_light_timer()'}
-        tasks_done3 = {'trigger': 'tasks_done', 'source': 'red', 'target': 'off'}
+        t1 = {
+            'trigger': 't', 
+            'source': 'yellow', 
+            'target': 'red'
+        }
+
+        tasks_done1 = {
+            'trigger': 'tasks_done', 
+            'source': 'green', 
+            'target': 'off',
+            'effect': 'stop_light_timer()'
+        }
+
+        tasks_done2 = {
+            'trigger': 'tasks_done', 
+            'source': 'yellow', 
+            'target': 'off',
+            'effect': 'stop_light_timer()'
+        }
+
+        tasks_done3 = {
+            'trigger': 'tasks_done', 
+            'source': 'red', 
+            'target': 'off'
+        }
 
         # Define the state machine
         status_light_stm = stmpy.Machine(
