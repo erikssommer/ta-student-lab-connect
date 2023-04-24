@@ -36,34 +36,77 @@ class GroupSTM:
         }
 
         # Define the transitions
-        init = {'source': 'initial', 'target': 'logged_on'}
+        init = {
+            'source': 'initial',
+            'target': 'logged_on'
+        }
 
         # Define the transitions where the task is started
-        tasks_recieved = {'trigger': 'tasks_received', 'source': 'logged_on', 'target': 'working_on_task'}
-        task_start1 = {'trigger': 'task_start', 'source': 'not_working_on_task',
-                       'target': 'working_on_task', 'effect': 'task_start()'}
-        task_start2 = {'trigger': 'task_start', 'source': 'working_on_task',
-                       'target': 'working_on_task', 'effect': 'task_start()'}
+        tasks_recieved = {
+            'trigger': 'tasks_received',
+            'source': 'logged_on',
+            'target': 'working_on_task'
+        }
+
+        task_start1 = {
+            'trigger': 'task_start',
+            'source': 'not_working_on_task',
+            'target': 'working_on_task',
+            'effect': 'task_start()'
+        }
+
+        task_start2 = {
+            'trigger': 'task_start',
+            'source': 'working_on_task',
+            'target': 'working_on_task',
+            'effect': 'task_start()'
+        }
 
         # Define the transitions where group is waiting for help
-        waiting_for_help1 = {'trigger': 'request_help', 'source': 'working_on_task',
-                             'target': 'waiting_for_help', 'effect': 'request_help()'}
-        waiting_for_help2 = {'trigger': 'request_help', 'source': 'not_working_on_task',
-                             'target': 'waiting_for_help', 'effect': 'request_help()'}
+        waiting_for_help1 = {
+            'trigger': 'request_help',
+            'source': 'working_on_task',
+            'target': 'waiting_for_help',
+            'effect': 'request_help()'
+        }
+
+        waiting_for_help2 = {
+            'trigger': 'request_help',
+            'source': 'not_working_on_task',
+            'target': 'waiting_for_help',
+            'effect': 'request_help()'
+        }
         
-        t_waiting_for_help = {'trigger': 't', 'source': 'waiting_for_help', 'target': 'waiting_for_help', 'effect': 'report_timer()'}
+        t_waiting_for_help = {
+            'trigger': 't', 'source':
+            'waiting_for_help', 'target':
+            'waiting_for_help',
+            'effect': 'report_timer()'
+        }
 
         # Define the transitions where group is receiving help
-        receiving_help1 = {'trigger': 'receive_help', 'source': 'waiting_for_help',
-                           'target': 'receiving_help', 'effect': 'receiving_help()'}
+        receiving_help1 = {
+            'trigger': 'receive_help',
+            'source': 'waiting_for_help',
+            'target': 'receiving_help',
+            'effect': 'receiving_help()'
+        }
 
         # Define the transitions where group has recieved help and is working on next task
-        received_help1 = {'trigger': 'received_help', 'source': 'receiving_help',
-                          'target': 'working_on_task', 'effect': 'recieved_help()'}
+        received_help1 = {
+            'trigger': 'received_help',
+            'source': 'receiving_help',
+            'target': 'working_on_task', 
+            'effect': 'recieved_help()'
+        }
 
         # Define the transitions where all the tasks is finished
-        tasks_done1 = {'trigger': 'tasks_done', 'source': 'working_on_task',
-                       'target': 'finished', 'effect': 'finished()'}
+        tasks_done1 = {
+            'trigger': 'tasks_done',
+            'source': 'working_on_task',
+            'target': 'finished', 
+            'effect': 'finished()'
+        }
 
         # Define the state machine
         group_stm = stmpy.Machine(
