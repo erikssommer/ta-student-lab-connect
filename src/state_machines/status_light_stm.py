@@ -29,10 +29,25 @@ class StatusLight:
             name=team, durations=durations, component=component, logger=logger)
         
         # Define the states
-        green = {'name': 'green', 'entry': 'on_enter_green(); start_light_timer()'}
-        yellow = {'name': 'yellow', 'entry': 'on_enter_yellow(); stop_light_timer(); start_light_timer()'}
-        red = {'name': 'red', 'entry': 'on_enter_red(); stop_light_timer()'}
-        off = {'name': 'off', 'entry': 'turn_off(); terminate_stm()'}
+        green = {
+            'name': 'green', 
+            'entry': 'on_enter_green(); start_light_timer()'
+        }
+
+        yellow = {
+            'name': 'yellow', 
+            'entry': 'on_enter_yellow(); stop_light_timer(); start_light_timer()'
+        }
+
+        red = {
+            'name': 'red', 
+            'entry': 'on_enter_red(); stop_light_timer()'
+        }
+
+        off = {
+            'name': 'off', 
+            'entry': 'turn_off(); terminate_stm()'
+        }
 
         # Define the transitions
 
