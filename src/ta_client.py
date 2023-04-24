@@ -1,5 +1,5 @@
 import logging
-from components.ta_client_component import TaClientComponent
+from components.ta_component import TaClientComponent
 
 
 if __name__ == '__main__':
