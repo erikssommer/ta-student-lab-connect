@@ -17,12 +17,23 @@ class GroupSTM:
         group_obj = GroupSTM(name=team, component=component, logger=logger)
 
         # Define the states
-        logged_on = {'name': 'logged_on'}
-        not_working_on_task = {'name': 'not_working_on_task'}
-        working_on_task = {'name': 'working_on_task'}
-        waiting_for_help = {'name': 'waiting_for_help',
-                            'entry': 'start_waiting_for_help_timer()', 
-                            'exit': 'stop_waiting_for_help_timer()'}
+        logged_on = {
+            'name': 'logged_on'
+        }
+
+        not_working_on_task = {
+            'name': 'not_working_on_task'
+        }
+
+        working_on_task = {
+            'name': 'working_on_task'
+        }
+
+        waiting_for_help = {
+            'name': 'waiting_for_help',
+            'entry': 'start_waiting_for_help_timer()', 
+            'exit': 'stop_waiting_for_help_timer()'
+        }
 
         # Define the transitions
         init = {'source': 'initial', 'target': 'logged_on'}
