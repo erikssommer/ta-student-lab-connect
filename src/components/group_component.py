@@ -13,7 +13,7 @@ from mqtt_clients.group_mqtt_client import GroupMqttClient
 NR_OF_TEAMS = 20
 
 
-class GroupClientComponent:
+class GroupComponent:
 
     # Creation on state machines logic
     def create_status_light_stm(self, durations: list[str]):
