@@ -1,6 +1,6 @@
 import logging
 
-from components.group_client_component import GroupClientComponent
+from components.group_component import GroupComponent
 
 if __name__ == '__main__':
     # logging.DEBUG: Most fine-grained logging, printing everything
@@ -18,4 +18,4 @@ if __name__ == '__main__':
     logger.addHandler(ch)
 
     # Create a new instance of the GroupClientComponent
-    client = GroupClientComponent(logger)
+    client = GroupComponent(logger)
