@@ -17,30 +17,30 @@ class TaSTM:
         # Define the states
         logged_on = {
             'name': 'logged_on'
-            }
+        }
         
         helping_group = {
             'name': 'helping_group',
             'entry': 'help_group()', 
             'exit': 'help_recieved()'
-            }
+        }
         
         not_helping_group = {
             'name': 'not_helping_group'
-            }
+        }
 
         # Define the transitions
         init = {
             'source': 'initial',
             'target': 'logged_on', 
             'effect': 'started()'
-            }
+        }
 
         t_publish_tasks = {
             'trigger': 'publish_tasks',
             'source': 'logged_on', 
             'target': 'not_helping_group'
-            }
+        }
 
         # Define the transitions to helping a group
         t_helping_group = {
@@ -48,14 +48,14 @@ class TaSTM:
             'source': 'not_helping_group',
             'target': 'helping_group', 
             'effect': 'start_giving_help_timer()'
-            }
+        }
 
         t_helping_group_timer_expired = {
             'trigger': 't',
             'source': 'helping_group',
             'target': 'helping_group', 
             'effect': 'notify_ta_helping_timer_expired()'
-            }
+        }
 
         # Define the transitions to not helping a group
         t_not_helping_group = {
@@ -63,7 +63,7 @@ class TaSTM:
             'source': 'helping_group',
             'target': 'not_helping_group', 
             'effect': 'stop_giving_help_timer()'
-            }
+        }
 
         # Define the state machine
         ta_stm = stmpy.Machine(
@@ -74,7 +74,7 @@ class TaSTM:
         )
 
         ta_obj.stm = ta_stm
-        
+
         return ta_stm
     
     def started(self):
