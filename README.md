@@ -7,7 +7,7 @@ Semester project in the course Design of Communicating Systems at NTNU Trondheim
 - Edith Aguado Roca
 - Erik Storås Sommer
 - Eva Vartdal Kvalø
-- ...
+- Petter Leine Alnes
 
 ## Project description
 This project uses MQTT as communication protocol between two clients, a TA client and a student group client. The TA client is used to send out tasks to the student group clients. The student group clients is used by the groups to register progress and request help if needed. The TA client can then see the progress of the groups and help them if needed.
