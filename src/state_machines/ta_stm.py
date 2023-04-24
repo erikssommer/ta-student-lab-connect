@@ -74,7 +74,7 @@ class TaSTM:
         )
 
         ta_obj.stm = ta_stm
-gi
+        
         return ta_stm
     
     def started(self):
