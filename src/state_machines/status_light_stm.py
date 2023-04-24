@@ -29,10 +29,25 @@ class StatusLight:
             name=team, durations=durations, component=component, logger=logger)
         
         # Define the states
-        green = {'name': 'green', 'entry': 'on_enter_green(); start_light_timer()'}
-        yellow = {'name': 'yellow', 'entry': 'on_enter_yellow(); stop_light_timer(); start_light_timer()'}
-        red = {'name': 'red', 'entry': 'on_enter_red(); stop_light_timer()'}
-        off = {'name': 'off', 'entry': 'turn_off(); terminate_stm()'}
+        green = {
+            'name': 'green', 
+            'entry': 'on_enter_green(); start_light_timer()'
+        }
+
+        yellow = {
+            'name': 'yellow', 
+            'entry': 'on_enter_yellow(); stop_light_timer(); start_light_timer()'
+        }
+
+        red = {
+            'name': 'red', 
+            'entry': 'on_enter_red(); stop_light_timer()'
+        }
+
+        off = {
+            'name': 'off', 
+            'entry': 'turn_off(); terminate_stm()'
+        }
 
         # Define the transitions
 
@@ -40,22 +55,56 @@ class StatusLight:
         init = {'source': 'initial', 'target': 'green'}
 
         # Define the transitions where the task is started
-        task_start1 = {'trigger': 'task_start', 'source': 'green',
-                       'target': 'green'}
-        task_start2 = {'trigger': 'task_start', 'source': 'yellow',
-                       'target': 'green'}
-        task_start3 = {'trigger': 'task_start', 'source': 'red',
-                       'target': 'green'}
+        task_start1 = {
+            'trigger': 'task_start', 
+            'source': 'green',
+            'target': 'green'
+        }
+
+        task_start2 = {
+            'trigger': 'task_start', 
+            'source': 'yellow',
+            'target': 'green'
+        }
+
+        task_start3 = {
+            'trigger': 'task_start', 
+            'source': 'red',
+            'target': 'green'
+        }
 
         # Define the transitions where the time is up
-        t0 = {'trigger': 't', 'source': 'green', 'target': 'yellow'}
-        t1 = {'trigger': 't', 'source': 'yellow', 'target': 'red'}
+        t0 = {
+            'trigger': 't', 
+            'source': 'green', 
+            'target': 'yellow'
+        }
 
-        tasks_done1 = {'trigger': 'tasks_done', 'source': 'green', 'target': 'off',
-                       'effect': 'stop_light_timer()'}
-        tasks_done2 = {'trigger': 'tasks_done', 'source': 'yellow', 'target': 'off',
-                       'effect': 'stop_light_timer()'}
-        tasks_done3 = {'trigger': 'tasks_done', 'source': 'red', 'target': 'off'}
+        t1 = {
+            'trigger': 't', 
+            'source': 'yellow', 
+            'target': 'red'
+        }
+
+        tasks_done1 = {
+            'trigger': 'tasks_done', 
+            'source': 'green', 
+            'target': 'off',
+            'effect': 'stop_light_timer()'
+        }
+
+        tasks_done2 = {
+            'trigger': 'tasks_done', 
+            'source': 'yellow', 
+            'target': 'off',
+            'effect': 'stop_light_timer()'
+        }
+
+        tasks_done3 = {
+            'trigger': 'tasks_done', 
+            'source': 'red', 
+            'target': 'off'
+        }
 
         # Define the state machine
         status_light_stm = stmpy.Machine(
