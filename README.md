@@ -36,3 +36,9 @@ python3 ta_client.py
 ```bash
 python3 group_client.py
 ```
+
+## Dashboard visualization
+
+TA client dashboard             |  Group client dashboard
+:-------------------------:|:-------------------------:
+![](./assets/ta-client.png)  |  ![](./assets/group-client.png)
