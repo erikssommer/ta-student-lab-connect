@@ -240,10 +240,26 @@ class GroupComponent:
                           help you with your tasks. Good luck!")
 
     def on_request_help(self):
+        help_request = self.app.getEntry("Description:")
+        # Test if the help request is empty
+        if help_request == "":
+            self.app.popUp(
+                "Error", "Please enter a description of the help you need", kind="error")
+            return
+        
         # Check of the tasks are submitted
+        if self.ta_connected == False:
+            self.app.popUp("Error", "No TA is connected to recieve the request", kind="error")
+            return
+        
+        if self.requesting_help:
+            self.app.popUp("Error", "You have already requested help", kind="error")
+            return
+        
         if self.app.getTableRowCount("table_tasks") == 0:
             self.app.popUp("Error", "Tasks need to be submitted befor requesting help", kind="error")
             return
+        
         # Change state to "waiting_for_help"
         self.stm_driver.send("request_help", self.group_stm_name)
 
@@ -375,17 +391,6 @@ class GroupComponent:
 
     def request_help(self):
         """ Send a help request to the TAs """
-
-        if self.ta_connected == False:
-            self.app.popUp(
-                "Error", "There are no TAs online. Wait for them to connect before requesting help", kind="error")
-            return
-
-        if self.requesting_help:
-            self.app.popUp(
-                "Error", "You are already requesting help.", kind="error")
-            return
-
         help_request = self.app.getEntry("Description:")
         # Test if the help request is empty
         if help_request == "":
